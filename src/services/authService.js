@@ -32,7 +32,6 @@ export const registerUser = async (email, password, userData) => {
         registerNumber: userData.registerNumber || '',
         passoutYear: userData.passoutYear || '',
         branch: userData.branch || '',
-        batch: userData.batch || '',
         gender: userData.gender || '',
         dob: userData.dob || null,
         lateralEntry: 'no',

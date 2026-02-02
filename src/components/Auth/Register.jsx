@@ -14,7 +14,6 @@ export default function Register() {
     registerNumber: '',
     passoutYear: '',
     branch: '',
-    batch: '',
   });
 
   const [error, setError] = useState('');
@@ -183,22 +182,11 @@ export default function Register() {
                     <option value="CSE">CSE</option>
                     <option value="ECE">ECE</option>
                     <option value="ME">ME</option>
-                    <option value="CE">CE</option>
-                  </select>
-                </div>
+                    <option value="IT">IT</option>
+                    <option value="EEE">ECE</option>
+                    <option value="RAI">RAI</option>
 
-                <div className="form-group">
-                  <label className="form-label">
-                    Batch
-                  </label>
-                  <input
-                    type="text"
-                    name="batch"
-                    value={formData.batch}
-                    onChange={handleChange}
-                    className="form-input"
-                    placeholder="A"
-                  />
+                  </select>
                 </div>
               </div>
             </>
