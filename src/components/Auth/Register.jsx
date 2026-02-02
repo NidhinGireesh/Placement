@@ -1,0 +1,258 @@
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { registerUser } from '../../services/authService';
+
+export default function Register() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    role: 'student',
+    // Student specific
+    registerNumber: '',
+    passoutYear: '',
+    branch: '',
+    batch: '',
+  });
+
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+
+    const result = await registerUser(formData.email, formData.password, formData);
+
+    if (result.success) {
+      alert('Registration successful! Please login.');
+      navigate('/login');
+    } else {
+      setError(result.error || 'Registration failed');
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <div className="auth-container">
+      <div className="auth-card" style={{ maxWidth: '600px' }}>
+        <h2 className="text-center" style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '2rem', color: '#1f2937' }}>
+          Create Account
+        </h2>
+
+        {error && (
+          <div style={{ backgroundColor: '#fee2e2', border: '1px solid #f87171', color: '#b91c1c', padding: '0.75rem', borderRadius: '0.375rem', marginBottom: '1rem' }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleRegister}>
+          {/* Role Selection */}
+          <div className="form-group">
+            <label className="form-label">
+              Select Role
+            </label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="form-input"
+            >
+              <option value="student">Student</option>
+              <option value="coordinator">Coordinator</option>
+              <option value="admin">Admin</option>
+              <option value="recruiter">Recruiter</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-group">
+              <label className="form-label">
+                Full Name
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="John Doe"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                Phone
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="9876543210"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="form-input"
+              placeholder="your@email.com"
+              required
+            />
+          </div>
+
+          {/* Student Specific Fields */}
+          {formData.role === 'student' && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="form-group">
+                  <label className="form-label">
+                    Register Number
+                  </label>
+                  <input
+                    type="text"
+                    name="registerNumber"
+                    value={formData.registerNumber}
+                    onChange={handleChange}
+                    className="form-input"
+                    placeholder="2024CS001"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Passout Year
+                  </label>
+                  <input
+                    type="text"
+                    name="passoutYear"
+                    value={formData.passoutYear}
+                    onChange={handleChange}
+                    className="form-input"
+                    placeholder="2024"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Branch
+                  </label>
+                  <select
+                    name="branch"
+                    value={formData.branch}
+                    onChange={handleChange}
+                    className="form-input"
+                  >
+                    <option value="">Select Branch</option>
+                    <option value="CSE">CSE</option>
+                    <option value="ECE">ECE</option>
+                    <option value="ME">ME</option>
+                    <option value="CE">CE</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Batch
+                  </label>
+                  <input
+                    type="text"
+                    name="batch"
+                    value={formData.batch}
+                    onChange={handleChange}
+                    className="form-input"
+                    placeholder="A"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-group">
+              <label className="form-label">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="At least 6 characters"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="Re-enter password"
+                required
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn btn-primary w-full"
+            style={{ marginTop: '1rem', opacity: loading ? 0.7 : 1 }}
+          >
+            {loading ? 'Registering...' : 'Register'}
+          </button>
+        </form>
+
+        <p className="text-center" style={{ marginTop: '1.5rem', color: '#4b5563' }}>
+          Already have an account?{' '}
+          <Link to="/login" style={{ color: '#2563eb', fontWeight: 'bold', textDecoration: 'none' }}>
+            Login here
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}
