@@ -2,11 +2,30 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logoutUser } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
+import DashboardOverview from './DashboardOverview';
+import UserManagement from './UserManagement';
+// We will import these later as we create them
+import JobDashboard from './JobManagement/JobDashboard';
+import CourseDashboard from './CourseManagement/CourseDashboard';
+import ReportsDashboard from './Reports/ReportsDashboard';
+import CoordinatorManagement from './CoordinatorManagement';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState('overview');
+  const [jobFilter, setJobFilter] = useState('All'); // 'All', 'Job', 'Internship'
+  const [isJobMenuOpen, setIsJobMenuOpen] = useState(false);
+
+  // Dummy Data
+  const [students, setStudents] = useState([
+    { id: 1, name: 'John Doe', email: 'john@gmail.com', status: 'pending', blocked: false },
+    { id: 2, name: 'Alice John', email: 'alice@gmail.com', status: 'approved', blocked: false },
+  ]);
+
+  const [recruiters, setRecruiters] = useState([
+    { id: 1, company: 'TCS', email: 'hr@tcs.com' },
+  ]);
 
   const handleLogout = async () => {
     const result = await logoutUser();
@@ -16,110 +35,256 @@ export default function AdminDashboard() {
     }
   };
 
-  const SidebarItem = ({ id, icon, label }) => (
-    <button
-      onClick={() => setActiveTab(id)}
-      className="sidebar-item"
-      style={{
-        color: activeTab === id ? 'white' : '#9ca3af',
-        backgroundColor: activeTab === id ? '#1f2937' : 'transparent',
-        borderRight: activeTab === id ? '4px solid #ef4444' : 'none'
-      }}
-      onMouseEnter={(e) => { if (activeTab !== id) { e.currentTarget.style.backgroundColor = '#1f2937'; e.currentTarget.style.color = 'white'; } }}
-      onMouseLeave={(e) => { if (activeTab !== id) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#9ca3af'; } }}
-    >
-      <span style={{ marginRight: '0.75rem', fontSize: '1.25rem' }}>{icon}</span>
-      <span style={{ fontWeight: 600 }}>{label}</span>
-    </button>
-  );
+  const approveStudent = (id) => {
+    setStudents((prev) =>
+      prev.map((student) =>
+        student.id === id ? { ...student, status: 'approved' } : student
+      )
+    );
+  };
+
+  const toggleBlockStudent = (id) => {
+    setStudents((prev) =>
+      prev.map((student) =>
+        student.id === id ? { ...student, blocked: !student.blocked } : student
+      )
+    );
+  };
+
+  const addRecruiter = () => {
+    const company = prompt('Enter Company Name');
+    const email = prompt('Enter Company Email');
+
+    if (company && email) {
+      setRecruiters((prev) => [...prev, { id: Date.now(), company, email }]);
+    }
+  };
+
+  const removeRecruiter = (id) => {
+    setRecruiters((prev) => prev.filter((r) => r.id !== id));
+  };
 
   return (
-    <div className="dashboard-container">
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
       {/* Sidebar */}
-      <aside className="sidebar" style={{ backgroundColor: '#111827', color: 'white' }}>
-        <div className="sidebar-header" style={{ borderBottom: '1px solid #1f2937' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', letterSpacing: '0.05em' }}>
-            ADMIN<span style={{ color: '#ef4444' }}>.</span>
-          </h2>
-          <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>System Control</p>
+      <aside
+        style={{
+          width: '250px',
+          backgroundColor: '#111827',
+          color: 'white',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div>
+          <div style={{ padding: '1.5rem', borderBottom: '1px solid #1f2937' }}>
+            <h2>
+              ADMIN<span style={{ color: '#ef4444' }}>.</span>
+            </h2>
+          </div>
+
+          <nav style={{ marginTop: '1rem' }}>
+            <SidebarItem
+              id="overview"
+              icon="🖥️"
+              label="Dashboard"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+
+            <SidebarItem
+              id="users"
+              icon="👥"
+              label="User Management"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+
+            {/* Job & Placement with Sub-menu */}
+            <div>
+              <button
+                onClick={() => {
+                  setActiveTab('jobs');
+                  setIsJobMenuOpen(!isJobMenuOpen);
+                  setJobFilter('All');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem 1.5rem',
+                  width: '100%',
+                  textAlign: 'left',
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: activeTab === 'jobs' ? '#1f2937' : 'transparent',
+                  color: activeTab === 'jobs' ? 'white' : '#9ca3af',
+                  borderRight: activeTab === 'jobs'
+                    ? '4px solid #ef4444'
+                    : '4px solid transparent',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.1rem' }}>💼</span>
+                  <span style={{ fontWeight: 600 }}>Job & Placement</span>
+                </div>
+                <span style={{ fontSize: '0.8rem' }}>{isJobMenuOpen ? '▼' : '▶'}</span>
+              </button>
+
+              {isJobMenuOpen && (
+                <div style={{ backgroundColor: '#111827', paddingLeft: '3rem' }}>
+                  <button
+                    onClick={() => {
+                      setActiveTab('jobs');
+                      setJobFilter('Job');
+                    }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '0.5rem 0',
+                      background: 'transparent',
+                      border: 'none',
+                      color: jobFilter === 'Job' ? '#fff' : '#9ca3af',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    • Full Time Jobs
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('jobs');
+                      setJobFilter('Internship');
+                    }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '0.5rem 0',
+                      background: 'transparent',
+                      border: 'none',
+                      color: jobFilter === 'Internship' ? '#fff' : '#9ca3af',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    • Internships
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <SidebarItem
+              id="courses"
+              icon="📚"
+              label="Course Management"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+
+            <SidebarItem
+              id="reports"
+              icon="📊"
+              label="Communication & Reports"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+
+            <SidebarItem
+              id="coordinators"
+              icon="👔"
+              label="Coordinator Mgmt"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+          </nav>
         </div>
 
-        <nav className="sidebar-nav" style={{ marginTop: '1rem' }}>
-          <SidebarItem id="overview" icon="🖥️" label="Dashboard" />
-          <SidebarItem id="users" icon="👥" label="User Management" />
-          <SidebarItem id="settings" icon="⚙️" label="System Config" />
-          <SidebarItem id="logs" icon="📜" label="Audit Logs" />
-        </nav>
-
-        <div style={{ padding: '1.5rem', marginTop: 'auto', borderTop: '1px solid #1f2937' }}>
+        <div style={{ padding: '1.5rem' }}>
           <button
             onClick={handleLogout}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              color: '#ef4444',
               background: 'none',
               border: 'none',
+              color: '#ef4444',
               cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '1rem',
-              transition: 'color 0.2s'
+              fontWeight: 'bold',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#f87171'}
-            onMouseLeave={(e) => e.currentTarget.style.color = '#ef4444'}
           >
-            <span style={{ marginRight: '0.75rem' }}>🛑</span>
-            <span>Logout System</span>
+            🛑 Logout
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="main-content" style={{ backgroundColor: '#f9fafb' }}>
-        <header className="flex justify-between items-center" style={{ marginBottom: '2rem' }}>
-          <div>
-            <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827' }}>
-              System Overview
-            </h1>
-            <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Monitoring active system status.</p>
-          </div>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '0.5rem 1rem',
-            borderRadius: '9999px',
-            boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)',
-            display: 'flex',
-            alignItems: 'center',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{ width: '0.75rem', height: '0.75rem', backgroundColor: '#22c55e', borderRadius: '50%', marginRight: '0.5rem' }}></div>
-            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>System Online</span>
-          </div>
-        </header>
+      <main style={{ flex: 1, padding: '2rem', backgroundColor: '#f9fafb' }}>
+        {activeTab === 'overview' && (
+          <DashboardOverview students={students} recruiters={recruiters} />
+        )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-4 gap-6" style={{ marginBottom: '2rem' }}>
-          <div className="stat-card" style={{ borderTopWidth: '4px', borderLeftWidth: '0', borderTopColor: '#2563eb' }}>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Students</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', marginTop: '0.5rem' }}>0</p>
-          </div>
+        {activeTab === 'users' && (
+          <UserManagement
+            students={students}
+            recruiters={recruiters}
+            approveStudent={approveStudent}
+            toggleBlockStudent={toggleBlockStudent}
+            addRecruiter={addRecruiter}
+            removeRecruiter={removeRecruiter}
+          />
+        )}
 
-          <div className="stat-card" style={{ borderTopWidth: '4px', borderLeftWidth: '0', borderTopColor: '#0d9488' }}>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Coordinators</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', marginTop: '0.5rem' }}>0</p>
-          </div>
-
-          <div className="stat-card" style={{ borderTopWidth: '4px', borderLeftWidth: '0', borderTopColor: '#9333ea' }}>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recruiters</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', marginTop: '0.5rem' }}>0</p>
-          </div>
-
-          <div className="stat-card" style={{ borderTopWidth: '4px', borderLeftWidth: '0', borderTopColor: '#dc2626' }}>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>System Alerts</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', marginTop: '0.5rem' }}>0</p>
-          </div>
-        </div>
+        {activeTab === 'jobs' && <JobDashboard filterType={jobFilter} />}
+        {activeTab === 'courses' && <CourseDashboard />}
+        {activeTab === 'reports' && <ReportsDashboard />}
+        {activeTab === 'coordinators' && <CoordinatorManagement />}
       </main>
     </div>
+  );
+}
+
+/* ================= REUSABLE COMPONENTS ================= */
+
+function SidebarItem({ id, icon, label, activeTab, setActiveTab }) {
+  const isActive = activeTab === id;
+
+  return (
+    <button
+      onClick={() => setActiveTab(id)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0.75rem 1.5rem',
+        width: '100%',
+        textAlign: 'left',
+        border: 'none',
+        cursor: 'pointer',
+        backgroundColor: isActive ? '#1f2937' : 'transparent',
+        color: isActive ? 'white' : '#9ca3af',
+        borderRight: isActive
+          ? '4px solid #ef4444'
+          : '4px solid transparent',
+        transition: 'all 0.2s ease',
+      }}
+      onMouseEnter={(e) => {
+        if (!isActive) {
+          e.currentTarget.style.backgroundColor = '#1f2937';
+          e.currentTarget.style.color = 'white';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive) {
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.color = '#9ca3af';
+        }
+      }}
+    >
+      <span style={{ marginRight: '0.75rem', fontSize: '1.1rem' }}>
+        {icon}
+      </span>
+      <span style={{ fontWeight: 600 }}>{label}</span>
+    </button>
   );
 }
