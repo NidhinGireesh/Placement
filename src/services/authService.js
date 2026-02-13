@@ -60,11 +60,47 @@ export const loginUser = async (email, password) => {
     // Get user role from Firestore
     const userDoc = await getDoc(doc(db, 'users', uid));
     if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const role = userData.role;
+
+      // Check approval status for recruiters and coordinators
+      if (role === 'recruiter' || role === 'coordinator') {
+        const isApproved = userData.status === 'Approved' || userData.status === 'approved' || userData.approved === true;
+        const isBlocked = userData.blocked === true;
+
+        if (isBlocked) {
+          // Sign out the user if they're blocked
+          await signOut(auth);
+          return {
+            error: 'Your account has been blocked. Please contact the administrator.',
+            success: false
+          };
+        }
+
+        if (!isApproved) {
+          // Sign out the user if they're not approved
+          await signOut(auth);
+          return {
+            error: 'Your account is pending admin approval. Please wait for verification.',
+            success: false
+          };
+        }
+      }
+
+      // Check if student is blocked
+      if (role === 'student' && userData.blocked === true) {
+        await signOut(auth);
+        return {
+          error: 'Your account has been blocked. Please contact the administrator.',
+          success: false
+        };
+      }
+
       return {
         uid,
-        email: userDoc.data().email,
-        role: userDoc.data().role,
-        name: userDoc.data().name,
+        email: userData.email,
+        role: userData.role,
+        name: userData.name,
         success: true,
       };
     }
