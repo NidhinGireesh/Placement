@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
+import './Auth.css';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -32,12 +33,12 @@ export default function Login() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h2 className="text-center" style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '2rem', color: '#1f2937' }}>
+        <h2 className="auth-title">
           College Placement System
         </h2>
 
         {error && (
-          <div style={{ backgroundColor: '#fee2e2', border: '1px solid #f87171', color: '#b91c1c', padding: '0.75rem', borderRadius: '0.375rem', marginBottom: '1rem' }}>
+          <div className="alert-error">
             {error}
           </div>
         )}
@@ -74,16 +75,16 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="btn btn-primary w-full"
-            style={{ marginTop: '1rem', opacity: loading ? 0.7 : 1 }}
+            className="btn-primary"
+            style={{ marginTop: '1rem' }}
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
-        <p className="text-center" style={{ marginTop: '1.5rem', color: '#4b5563' }}>
+        <p className="auth-footer">
           Don't have an account?{' '}
-          <Link to="/register" style={{ color: '#2563eb', fontWeight: 'bold', textDecoration: 'none' }}>
+          <Link to="/register" className="auth-link">
             Register here
           </Link>
         </p>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerUser } from '../../services/authService';
+import './Auth.css';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -60,12 +61,12 @@ export default function Register() {
   return (
     <div className="auth-container">
       <div className="auth-card" style={{ maxWidth: '600px' }}>
-        <h2 className="text-center" style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '2rem', color: '#1f2937' }}>
+        <h2 className="auth-title">
           Create Account
         </h2>
 
         {error && (
-          <div style={{ backgroundColor: '#fee2e2', border: '1px solid #f87171', color: '#b91c1c', padding: '0.75rem', borderRadius: '0.375rem', marginBottom: '1rem' }}>
+          <div className="alert-error">
             {error}
           </div>
         )}
@@ -89,7 +90,7 @@ export default function Register() {
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid-2">
             <div className="form-group">
               <label className="form-label">
                 Full Name
@@ -139,7 +140,7 @@ export default function Register() {
           {/* Student Specific Fields */}
           {formData.role === 'student' && (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid-2">
                 <div className="form-group">
                   <label className="form-label">
                     Register Number
@@ -167,32 +168,32 @@ export default function Register() {
                     placeholder="2024"
                   />
                 </div>
+              </div>
 
-                <div className="form-group">
-                  <label className="form-label">
-                    Branch
-                  </label>
-                  <select
-                    name="branch"
-                    value={formData.branch}
-                    onChange={handleChange}
-                    className="form-input"
-                  >
-                    <option value="">Select Branch</option>
-                    <option value="CSE">CSE</option>
-                    <option value="ECE">ECE</option>
-                    <option value="ME">ME</option>
-                    <option value="IT">IT</option>
-                    <option value="EEE">ECE</option>
-                    <option value="RAI">RAI</option>
+              <div className="form-group">
+                <label className="form-label">
+                  Branch
+                </label>
+                <select
+                  name="branch"
+                  value={formData.branch}
+                  onChange={handleChange}
+                  className="form-input"
+                >
+                  <option value="">Select Branch</option>
+                  <option value="CSE">CSE</option>
+                  <option value="ECE">ECE</option>
+                  <option value="ME">ME</option>
+                  <option value="IT">IT</option>
+                  <option value="EEE">ECE</option>
+                  <option value="RAI">RAI</option>
 
-                  </select>
-                </div>
+                </select>
               </div>
             </>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid-2">
             <div className="form-group">
               <label className="form-label">
                 Password
@@ -227,16 +228,16 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="btn btn-primary w-full"
-            style={{ marginTop: '1rem', opacity: loading ? 0.7 : 1 }}
+            className="btn-primary"
+            style={{ marginTop: '1rem' }}
           >
             {loading ? 'Registering...' : 'Register'}
           </button>
         </form>
 
-        <p className="text-center" style={{ marginTop: '1.5rem', color: '#4b5563' }}>
+        <p className="auth-footer">
           Already have an account?{' '}
-          <Link to="/login" style={{ color: '#2563eb', fontWeight: 'bold', textDecoration: 'none' }}>
+          <Link to="/login" className="auth-link">
             Login here
           </Link>
         </p>

@@ -35,6 +35,7 @@ function CommunicationForm() {
                     <option value="All Students">All Students</option>
                     <option value="Placed Students">Placed Students</option>
                     <option value="Unplaced Students">Unplaced Students</option>
+                    <option value="Student Coordinators">Student Coordinators</option>
                     <option value="Recruiters">Recruiters</option>
                 </select>
                 <input name="subject" type="text" placeholder="Subject" required style={inputStyle} />

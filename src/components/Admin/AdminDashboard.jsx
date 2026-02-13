@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { logoutUser } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
 import DashboardOverview from './DashboardOverview';
-import UserManagement from './UserManagement';
+import StudentManagement from './StudentManagement';
+import RecruiterManagement from './RecruiterManagement';
 // We will import these later as we create them
 import JobDashboard from './JobManagement/JobDashboard';
 import CourseDashboard from './CourseManagement/CourseDashboard';
 import ReportsDashboard from './Reports/ReportsDashboard';
 import CoordinatorManagement from './CoordinatorManagement';
+import './AdminDashboard.css';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -16,16 +18,6 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [jobFilter, setJobFilter] = useState('All'); // 'All', 'Job', 'Internship'
   const [isJobMenuOpen, setIsJobMenuOpen] = useState(false);
-
-  // Dummy Data
-  const [students, setStudents] = useState([
-    { id: 1, name: 'John Doe', email: 'john@gmail.com', status: 'pending', blocked: false },
-    { id: 2, name: 'Alice John', email: 'alice@gmail.com', status: 'approved', blocked: false },
-  ]);
-
-  const [recruiters, setRecruiters] = useState([
-    { id: 1, company: 'TCS', email: 'hr@tcs.com' },
-  ]);
 
   const handleLogout = async () => {
     const result = await logoutUser();
@@ -35,56 +27,18 @@ export default function AdminDashboard() {
     }
   };
 
-  const approveStudent = (id) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === id ? { ...student, status: 'approved' } : student
-      )
-    );
-  };
-
-  const toggleBlockStudent = (id) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === id ? { ...student, blocked: !student.blocked } : student
-      )
-    );
-  };
-
-  const addRecruiter = () => {
-    const company = prompt('Enter Company Name');
-    const email = prompt('Enter Company Email');
-
-    if (company && email) {
-      setRecruiters((prev) => [...prev, { id: Date.now(), company, email }]);
-    }
-  };
-
-  const removeRecruiter = (id) => {
-    setRecruiters((prev) => prev.filter((r) => r.id !== id));
-  };
-
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="admin-container">
       {/* Sidebar */}
-      <aside
-        style={{
-          width: '250px',
-          backgroundColor: '#111827',
-          color: 'white',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-        }}
-      >
+      <aside className="sidebar">
         <div>
-          <div style={{ padding: '1.5rem', borderBottom: '1px solid #1f2937' }}>
+          <div className="sidebar-header">
             <h2>
-              ADMIN<span style={{ color: '#ef4444' }}>.</span>
+              ADMIN<span className="brand-dot">.</span>
             </h2>
           </div>
 
-          <nav style={{ marginTop: '1rem' }}>
+          <nav className="sidebar-nav">
             <SidebarItem
               id="overview"
               icon="🖥️"
@@ -94,9 +48,17 @@ export default function AdminDashboard() {
             />
 
             <SidebarItem
-              id="users"
-              icon="👥"
-              label="User Management"
+              id="students"
+              icon="🎓"
+              label="Student Management"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+
+            <SidebarItem
+              id="recruiters"
+              icon="🏢"
+              label="Recruiter Management"
               activeTab={activeTab}
               setActiveTab={setActiveTab}
             />
@@ -109,48 +71,23 @@ export default function AdminDashboard() {
                   setIsJobMenuOpen(!isJobMenuOpen);
                   setJobFilter('All');
                 }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.75rem 1.5rem',
-                  width: '100%',
-                  textAlign: 'left',
-                  border: 'none',
-                  cursor: 'pointer',
-                  backgroundColor: activeTab === 'jobs' ? '#1f2937' : 'transparent',
-                  color: activeTab === 'jobs' ? 'white' : '#9ca3af',
-                  borderRight: activeTab === 'jobs'
-                    ? '4px solid #ef4444'
-                    : '4px solid transparent',
-                  transition: 'all 0.2s ease',
-                }}
+                className={`sidebar-item ${activeTab === 'jobs' ? 'active' : ''}`}
               >
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ marginRight: '0.75rem', fontSize: '1.1rem' }}>💼</span>
-                  <span style={{ fontWeight: 600 }}>Job & Placement</span>
+                  <span className="sidebar-icon">💼</span>
+                  <span className="sidebar-label">Job & Placement</span>
                 </div>
-                <span style={{ fontSize: '0.8rem' }}>{isJobMenuOpen ? '▼' : '▶'}</span>
+                <span className="submenu-toggle-icon">{isJobMenuOpen ? '▼' : '▶'}</span>
               </button>
 
               {isJobMenuOpen && (
-                <div style={{ backgroundColor: '#111827', paddingLeft: '3rem' }}>
+                <div className="submenu-container">
                   <button
                     onClick={() => {
                       setActiveTab('jobs');
                       setJobFilter('Job');
                     }}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '0.5rem 0',
-                      background: 'transparent',
-                      border: 'none',
-                      color: jobFilter === 'Job' ? '#fff' : '#9ca3af',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem'
-                    }}
+                    className={`submenu-item ${jobFilter === 'Job' ? 'active' : ''}`}
                   >
                     • Full Time Jobs
                   </button>
@@ -159,17 +96,7 @@ export default function AdminDashboard() {
                       setActiveTab('jobs');
                       setJobFilter('Internship');
                     }}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '0.5rem 0',
-                      background: 'transparent',
-                      border: 'none',
-                      color: jobFilter === 'Internship' ? '#fff' : '#9ca3af',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem'
-                    }}
+                    className={`submenu-item ${jobFilter === 'Internship' ? 'active' : ''}`}
                   >
                     • Internships
                   </button>
@@ -196,23 +123,17 @@ export default function AdminDashboard() {
             <SidebarItem
               id="coordinators"
               icon="👔"
-              label="Coordinator Mgmt"
+              label="Coordinator Management"
               activeTab={activeTab}
               setActiveTab={setActiveTab}
             />
           </nav>
         </div>
 
-        <div style={{ padding: '1.5rem' }}>
+        <div className="sidebar-footer">
           <button
             onClick={handleLogout}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#ef4444',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-            }}
+            className="logout-btn"
           >
             🛑 Logout
           </button>
@@ -220,20 +141,17 @@ export default function AdminDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, padding: '2rem', backgroundColor: '#f9fafb' }}>
+      <main className="main-content">
         {activeTab === 'overview' && (
-          <DashboardOverview students={students} recruiters={recruiters} />
+          <DashboardOverview />
         )}
 
-        {activeTab === 'users' && (
-          <UserManagement
-            students={students}
-            recruiters={recruiters}
-            approveStudent={approveStudent}
-            toggleBlockStudent={toggleBlockStudent}
-            addRecruiter={addRecruiter}
-            removeRecruiter={removeRecruiter}
-          />
+        {activeTab === 'students' && (
+          <StudentManagement />
+        )}
+
+        {activeTab === 'recruiters' && (
+          <RecruiterManagement />
         )}
 
         {activeTab === 'jobs' && <JobDashboard filterType={jobFilter} />}
@@ -253,38 +171,12 @@ function SidebarItem({ id, icon, label, activeTab, setActiveTab }) {
   return (
     <button
       onClick={() => setActiveTab(id)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0.75rem 1.5rem',
-        width: '100%',
-        textAlign: 'left',
-        border: 'none',
-        cursor: 'pointer',
-        backgroundColor: isActive ? '#1f2937' : 'transparent',
-        color: isActive ? 'white' : '#9ca3af',
-        borderRight: isActive
-          ? '4px solid #ef4444'
-          : '4px solid transparent',
-        transition: 'all 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        if (!isActive) {
-          e.currentTarget.style.backgroundColor = '#1f2937';
-          e.currentTarget.style.color = 'white';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isActive) {
-          e.currentTarget.style.backgroundColor = 'transparent';
-          e.currentTarget.style.color = '#9ca3af';
-        }
-      }}
+      className={`sidebar-item ${isActive ? 'active' : ''}`}
     >
-      <span style={{ marginRight: '0.75rem', fontSize: '1.1rem' }}>
+      <span className="sidebar-icon">
         {icon}
       </span>
-      <span style={{ fontWeight: 600 }}>{label}</span>
+      <span className="sidebar-label">{label}</span>
     </button>
   );
 }
