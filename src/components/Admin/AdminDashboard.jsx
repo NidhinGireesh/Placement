@@ -1,12 +1,25 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { logoutUser } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
+import DashboardOverview from './DashboardOverview';
+import StudentManagement from './StudentManagement';
+import RecruiterManagement from './RecruiterManagement';
+import CoordinatorManagement from './CoordinatorManagement';
+import JobDashboard from './JobManagement/JobDashboard';
+import CourseDashboard from './CourseManagement/CourseDashboard';
+import ReportsDashboard from './Reports/ReportsDashboard';
+import './AdminDashboard.css';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const location = useLocation();
+  const { logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState('overview');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Helper to determine active tab if we used routing (optional)
+  // For now keeping internal state as per original design
 
   const handleLogout = async () => {
     const result = await logoutUser();
@@ -16,110 +29,116 @@ export default function AdminDashboard() {
     }
   };
 
-  const SidebarItem = ({ id, icon, label }) => (
-    <button
-      onClick={() => setActiveTab(id)}
-      className="sidebar-item"
-      style={{
-        color: activeTab === id ? 'white' : '#9ca3af',
-        backgroundColor: activeTab === id ? '#1f2937' : 'transparent',
-        borderRight: activeTab === id ? '4px solid #ef4444' : 'none'
-      }}
-      onMouseEnter={(e) => { if (activeTab !== id) { e.currentTarget.style.backgroundColor = '#1f2937'; e.currentTarget.style.color = 'white'; } }}
-      onMouseLeave={(e) => { if (activeTab !== id) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#9ca3af'; } }}
-    >
-      <span style={{ marginRight: '0.75rem', fontSize: '1.25rem' }}>{icon}</span>
-      <span style={{ fontWeight: 600 }}>{label}</span>
-    </button>
-  );
+  const navItems = [
+    { id: 'overview', label: 'Overview', icon: '📊' },
+    { id: 'students', label: 'Students', icon: '👨‍🎓' },
+    { id: 'recruiters', label: 'Recruiters', icon: '🏢' },
+    { id: 'coordinators', label: 'Coordinators', icon: '👔' },
+    { id: 'jobs', label: 'Jobs & Placements', icon: '💼' },
+    { id: 'courses', label: 'Training & Courses', icon: '📚' },
+    { id: 'reports', label: 'Reports', icon: '📑' },
+  ];
 
   return (
-    <div className="dashboard-container">
+    <div className="flex h-screen bg-gray-50 font-sans">
       {/* Sidebar */}
-      <aside className="sidebar" style={{ backgroundColor: '#111827', color: 'white' }}>
-        <div className="sidebar-header" style={{ borderBottom: '1px solid #1f2937' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', letterSpacing: '0.05em' }}>
-            ADMIN<span style={{ color: '#ef4444' }}>.</span>
-          </h2>
-          <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>System Control</p>
+      <aside
+        className={`
+          ${isSidebarOpen ? 'w-64' : 'w-20'} 
+          bg-slate-900 text-white transition-all duration-300 ease-in-out flex flex-col shadow-xl z-20
+        `}
+      >
+        <div className="flex items-center justify-between h-16 px-4 bg-slate-900 border-b border-slate-800">
+          {isSidebarOpen ? (
+            <h1 className="text-xl font-bold tracking-wider bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+              ADMIN PRO
+            </h1>
+          ) : (
+            <span className="text-xl font-bold mx-auto">AP</span>
+          )}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-1 rounded-md hover:bg-slate-800 text-slate-400 hidden md:block"
+          >
+            {isSidebarOpen ? '◀' : '▶'}
+          </button>
         </div>
 
-        <nav className="sidebar-nav" style={{ marginTop: '1rem' }}>
-          <SidebarItem id="overview" icon="🖥️" label="Dashboard" />
-          <SidebarItem id="users" icon="👥" label="User Management" />
-          <SidebarItem id="settings" icon="⚙️" label="System Config" />
-          <SidebarItem id="logs" icon="📜" label="Audit Logs" />
+        <nav className="flex-1 py-6 overflow-y-auto custom-scrollbar">
+          <ul className="space-y-1 px-3">
+            {navItems.map((item) => (
+              <li key={item.id}>
+                <button
+                  onClick={() => setActiveTab(item.id)}
+                  className={`
+                    flex items-center w-full px-3 py-3 rounded-lg transition-all duration-200 group
+                    ${activeTab === item.id
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'}
+                  `}
+                >
+                  <span className="text-xl min-w-[1.5rem] flex justify-center transform group-hover:scale-110 transition-transform">
+                    {item.icon}
+                  </span>
+                  {isSidebarOpen && (
+                    <span className="ml-3 font-medium truncate">{item.label}</span>
+                  )}
+                  {activeTab === item.id && !isSidebarOpen && (
+                    <div className="absolute left-20 bg-slate-800 text-white p-2 rounded shadow-lg text-xs whitespace-nowrap z-50">
+                      {item.label}
+                    </div>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
         </nav>
 
-        <div style={{ padding: '1.5rem', marginTop: 'auto', borderTop: '1px solid #1f2937' }}>
+        <div className="p-4 border-t border-slate-800">
           <button
             onClick={handleLogout}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              color: '#ef4444',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '1rem',
-              transition: 'color 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#f87171'}
-            onMouseLeave={(e) => e.currentTarget.style.color = '#ef4444'}
+            className={`
+              flex items-center w-full px-3 py-3 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors
+              ${!isSidebarOpen && 'justify-center'}
+            `}
           >
-            <span style={{ marginRight: '0.75rem' }}>🛑</span>
-            <span>Logout System</span>
+            <span className="text-xl">🚪</span>
+            {isSidebarOpen && <span className="ml-3 font-medium">Logout</span>}
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="main-content" style={{ backgroundColor: '#f9fafb' }}>
-        <header className="flex justify-between items-center" style={{ marginBottom: '2rem' }}>
-          <div>
-            <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827' }}>
-              System Overview
-            </h1>
-            <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Monitoring active system status.</p>
-          </div>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '0.5rem 1rem',
-            borderRadius: '9999px',
-            boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)',
-            display: 'flex',
-            alignItems: 'center',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{ width: '0.75rem', height: '0.75rem', backgroundColor: '#22c55e', borderRadius: '50%', marginRight: '0.5rem' }}></div>
-            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>System Online</span>
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-hidden flex flex-col">
+        {/* Top Header */}
+        <header className="h-16 bg-white shadow-sm border-b px-8 flex items-center justify-between z-10">
+          <h2 className="text-2xl font-bold text-slate-800">
+            {navItems.find(i => i.id === activeTab)?.label}
+          </h2>
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border-2 border-white shadow-sm">
+              A
+            </div>
           </div>
         </header>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-4 gap-6" style={{ marginBottom: '2rem' }}>
-          <div className="stat-card" style={{ borderTopWidth: '4px', borderLeftWidth: '0', borderTopColor: '#2563eb' }}>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Students</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', marginTop: '0.5rem' }}>0</p>
-          </div>
-
-          <div className="stat-card" style={{ borderTopWidth: '4px', borderLeftWidth: '0', borderTopColor: '#0d9488' }}>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Coordinators</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', marginTop: '0.5rem' }}>0</p>
-          </div>
-
-          <div className="stat-card" style={{ borderTopWidth: '4px', borderLeftWidth: '0', borderTopColor: '#9333ea' }}>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recruiters</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', marginTop: '0.5rem' }}>0</p>
-          </div>
-
-          <div className="stat-card" style={{ borderTopWidth: '4px', borderLeftWidth: '0', borderTopColor: '#dc2626' }}>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>System Alerts</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', marginTop: '0.5rem' }}>0</p>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+          <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
+            {activeTab === 'overview' && <DashboardOverview setActiveTab={setActiveTab} />}
+            {activeTab === 'students' && <StudentManagement />}
+            {activeTab === 'recruiters' && <RecruiterManagement />}
+            {activeTab === 'coordinators' && <CoordinatorManagement />}
+            {activeTab === 'jobs' && <JobDashboard />}
+            {activeTab === 'courses' && <CourseDashboard />}
+            {activeTab === 'reports' && <ReportsDashboard />}
           </div>
         </div>
       </main>
     </div>
   );
 }
+
+// Add some global styles if not present for scrollbar
+// This could be in index.css but handy here for now via style tag if needed
+// But since we using Tailwind, we can rely on standard or add custom classes in index.css

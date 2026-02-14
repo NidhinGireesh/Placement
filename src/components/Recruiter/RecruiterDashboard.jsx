@@ -7,6 +7,7 @@ export default function RecruiterDashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState('profile');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Company profile state
   const [companyProfile, setCompanyProfile] = useState({
@@ -84,25 +85,6 @@ export default function RecruiterDashboard() {
     }
   };
 
-  const SidebarItem = ({ id, icon, label }) => (
-    <button
-      onClick={() => setActiveTab(id)}
-      className="sidebar-item"
-      style={
-        activeTab === id
-          ? {
-              backgroundColor: 'rgba(147, 51, 234, 0.1)',
-              color: '#9333ea',
-              borderRight: '4px solid #9333ea',
-            }
-          : {}
-      }
-    >
-      <span style={{ marginRight: '0.75rem', fontSize: '1.25rem' }}>{icon}</span>
-      <span style={{ fontWeight: 600 }}>{label}</span>
-    </button>
-  );
-
   // Handlers for company profile
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
@@ -111,7 +93,6 @@ export default function RecruiterDashboard() {
 
   const handleProfileSubmit = (e) => {
     e.preventDefault();
-    // Hook this to your backend/API as needed
     showNotification('success', 'Company profile saved/updated successfully.');
   };
 
@@ -151,6 +132,7 @@ export default function RecruiterDashboard() {
       eligibility: job.eligibility || '',
     });
     setEditingJobId(job.id);
+    // Optionally switch to form view or scroll to form
   };
 
   const handleDeleteJob = (id) => {
@@ -191,617 +173,509 @@ export default function RecruiterDashboard() {
     showNotification('success', 'Selected candidate list published.');
   };
 
-  const renderProfileSection = () => (
-    <section className="mt-8">
-      <h2 className="text-2xl font-semibold text-gray-800 mb-1">
-        Recruiter &amp; Company Profile
-      </h2>
-      <p className="text-sm text-gray-500 mb-4">
-        Create and update your company profile.
-      </p>
-
-      <form onSubmit={handleProfileSubmit} className="space-y-4 max-w-xl">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Company Name
-          </label>
-          <input
-            type="text"
-            name="name"
-            value={companyProfile.name}
-            onChange={handleProfileChange}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            placeholder="Enter company name"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Location
-          </label>
-          <input
-            type="text"
-            name="location"
-            value={companyProfile.location}
-            onChange={handleProfileChange}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            placeholder="City, Country"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Website
-          </label>
-          <input
-            type="url"
-            name="website"
-            value={companyProfile.website}
-            onChange={handleProfileChange}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            placeholder="https://example.com"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Company Description
-          </label>
-          <textarea
-            name="description"
-            value={companyProfile.description}
-            onChange={handleProfileChange}
-            rows={4}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            placeholder="Describe your company, culture and values."
-          />
-        </div>
-        <button
-          type="submit"
-          className="btn bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-purple-700 transition"
-        >
-          Save Profile
-        </button>
-      </form>
-    </section>
-  );
-
-  const renderJobPostingSection = () => (
-    <section>
-      <h2 className="text-2xl font-semibold text-gray-800 mb-1">Job Posting</h2>
-      <p className="text-sm text-gray-500 mb-4">
-        Post job roles, define descriptions &amp; eligibility, and manage postings.
-      </p>
-
-      <form onSubmit={handleJobSubmit} className="space-y-4 max-w-2xl mb-8">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Job Title
-          </label>
-          <input
-            type="text"
-            name="title"
-            value={jobForm.title}
-            onChange={handleJobFormChange}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            placeholder="e.g., Software Engineer"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Job Description
-          </label>
-          <textarea
-            name="description"
-            value={jobForm.description}
-            onChange={handleJobFormChange}
-            rows={4}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            placeholder="Describe the role, responsibilities, and tech stack."
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Eligibility Criteria
-          </label>
-          <textarea
-            name="eligibility"
-            value={jobForm.eligibility}
-            onChange={handleJobFormChange}
-            rows={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            placeholder="CGPA, skills, batch, etc."
-          />
-        </div>
-        <button
-          type="submit"
-          className="btn bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-purple-700 transition"
-        >
-          {editingJobId ? 'Update Job Posting' : 'Post Job'}
-        </button>
-      </form>
-
-      <h3 className="text-lg font-semibold text-gray-800 mb-3">
-        Current Job Postings
-      </h3>
-      {jobPostings.length === 0 ? (
-        <p className="text-sm text-gray-500">No job postings yet.</p>
-      ) : (
-        <div className="space-y-3">
-          {jobPostings.map((job) => (
-            <div
-              key={job.id}
-              className="border border-gray-200 rounded-lg p-4 flex justify-between items-start"
-            >
-              <div>
-                <h4 className="text-base font-semibold text-gray-800">
-                  {job.title}
-                </h4>
-                <p className="text-sm text-gray-600 mt-1">
-                  <span className="font-medium">Description:</span>{' '}
-                  {job.description}
-                </p>
-                {job.eligibility && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    <span className="font-medium">Eligibility:</span>{' '}
-                    {job.eligibility}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleEditJob(job)}
-                  className="text-sm text-purple-600 hover:underline"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteJob(job.id)}
-                  className="text-sm text-red-500 hover:underline"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-
-  const renderApplicationsSection = () => (
-    <section>
-      <h2 className="text-2xl font-semibold text-gray-800 mb-1">
-        Application Handling
-      </h2>
-      <p className="text-sm text-gray-500 mb-4">
-        View application list, download resumes, shortlist or reject candidates.
-      </p>
-
-      {applications.length === 0 ? (
-        <p className="text-sm text-gray-500">No applications found.</p>
-      ) : (
-        <div className="space-y-3">
-          {applications.map((app) => (
-            <div
-              key={app.id}
-              className="border border-gray-200 rounded-lg p-4 flex justify-between items-start"
-            >
-              <div>
-                <h4 className="text-base font-semibold text-gray-800">
-                  {app.name}
-                </h4>
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Course:</span> {app.course}
-                </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Status:</span> {app.status}
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 items-end">
-                <a
-                  href={app.resumeUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  View / Download Resume
-                </a>
-                <button
-                  type="button"
-                  onClick={() => updateApplicationStatus(app.id, 'Shortlisted')}
-                  className="text-sm text-green-600 hover:underline"
-                >
-                  Shortlist
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateApplicationStatus(app.id, 'Rejected')}
-                  className="text-sm text-red-500 hover:underline"
-                >
-                  Reject
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-
-  const renderSelectionSection = () => (
-    <section>
-      <h2 className="text-2xl font-semibold text-gray-800 mb-1">
-        Selection Process
-      </h2>
-      <p className="text-sm text-gray-500 mb-4">
-        Schedule interviews (optional), update final selection results, and
-        publish the selected candidate list.
-      </p>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Schedule Interview */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">
-            Schedule Interview (Optional)
-          </h3>
-          <form onSubmit={handleInterviewSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Candidate Name
-              </label>
-              <input
-                type="text"
-                name="candidate"
-                value={interviewSchedule.candidate}
-                onChange={handleInterviewChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Enter candidate name"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Interview Date
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={interviewSchedule.date}
-                onChange={handleInterviewChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Interview Time
-              </label>
-              <input
-                type="time"
-                name="time"
-                value={interviewSchedule.time}
-                onChange={handleInterviewChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-            <button
-              type="submit"
-              className="btn bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-purple-700 transition"
-            >
-              Schedule Interview
-            </button>
-          </form>
-        </div>
-
-        {/* Final Selection */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">
-            Final Selection Results
-          </h3>
-          <div className="space-y-3 mb-4">
-            {selectionList.map((cand) => (
-              <div
-                key={cand.id}
-                className="border border-gray-200 rounded-lg p-3 flex justify-between items-center"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">
-                    {cand.name}
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    Status:{' '}
-                    <span className="font-medium">
-                      {cand.selected ? 'Selected' : 'Not Selected'}
-                    </span>
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => toggleSelectedCandidate(cand.id)}
-                  className="text-xs text-purple-600 hover:underline"
-                >
-                  {cand.selected ? 'Mark as Not Selected' : 'Mark as Selected'}
-                </button>
-              </div>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={publishSelectedList}
-            className="btn bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-green-700 transition"
-          >
-            {isPublished ? 'Re-publish Selected List' : 'Publish Selected List'}
-          </button>
-          {isPublished && (
-            <p className="text-xs text-gray-500 mt-2">
-              Selected candidate list has been published.
-            </p>
-          )}
-        </div>
-      </div>
-    </section>
-  );
+  const navItems = [
+    { id: 'profile', label: 'Company Profile', icon: '🏢' },
+    { id: 'jobPosting', label: 'Job Posting', icon: '📢' },
+    { id: 'applicationHandling', label: 'Applications', icon: '📄' },
+    { id: 'selectionProcess', label: 'Selection Process', icon: '✅' },
+  ];
 
   return (
-    <div className="dashboard-container">
+    <div className="flex h-screen bg-gray-50 font-sans">
       {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <h2
-            style={{
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
-              background: 'linear-gradient(to right, #9333ea, #7c3aed)',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent',
-            }}
+      <aside
+        className={`
+          ${isSidebarOpen ? 'w-64' : 'w-20'} 
+          bg-slate-900 text-white transition-all duration-300 ease-in-out flex flex-col shadow-xl z-20
+        `}
+      >
+        <div className="flex items-center justify-between h-16 px-4 bg-slate-900 border-b border-slate-800">
+          {isSidebarOpen ? (
+            <h1 className="text-xl font-bold tracking-wider bg-gradient-to-r from-purple-400 to-indigo-500 bg-clip-text text-transparent">
+              RECRUITER
+            </h1>
+          ) : (
+            <span className="text-xl font-bold mx-auto">RH</span>
+          )}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-1 rounded-md hover:bg-slate-800 text-slate-400 hidden md:block"
           >
-            Recruiter Hub
-          </h2>
-          <p
-            style={{
-              fontSize: '0.75rem',
-              color: '#9ca3af',
-              marginTop: '0.25rem',
-            }}
-          >
-            Talent Acquisition
-          </p>
+            {isSidebarOpen ? '◀' : '▶'}
+          </button>
         </div>
 
-        <nav className="sidebar-nav">
-          <SidebarItem
-            id="profile"
-            icon="🏢"
-            label="Recruiter & Company Profile"
-          />
-          <SidebarItem id="jobPosting" icon="📢" label="Job Posting" />
-          <SidebarItem
-            id="applicationHandling"
-            icon="📄"
-            label="Application Handling"
-          />
-          <SidebarItem
-            id="selectionProcess"
-            icon="✅"
-            label="Selection Process"
-          />
+        <nav className="flex-1 py-6 overflow-y-auto custom-scrollbar">
+          <ul className="space-y-1 px-3">
+            {navItems.map((item) => (
+              <li key={item.id}>
+                <button
+                  onClick={() => setActiveTab(item.id)}
+                  className={`
+                    flex items-center w-full px-3 py-3 rounded-lg transition-all duration-200 group
+                    ${activeTab === item.id
+                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50'
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'}
+                  `}
+                >
+                  <span className="text-xl min-w-[1.5rem] flex justify-center transform group-hover:scale-110 transition-transform">
+                    {item.icon}
+                  </span>
+                  {isSidebarOpen && (
+                    <span className="ml-3 font-medium truncate">{item.label}</span>
+                  )}
+                  {activeTab === item.id && !isSidebarOpen && (
+                    <div className="absolute left-20 bg-slate-800 text-white p-2 rounded shadow-lg text-xs whitespace-nowrap z-50">
+                      {item.label}
+                    </div>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
         </nav>
 
-        <div
-          style={{
-            padding: '1.5rem',
-            marginTop: 'auto',
-            borderTop: '1px solid #e5e7eb',
-          }}
-        >
+        <div className="p-4 border-t border-slate-800">
           <button
             onClick={handleLogout}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              color: '#ef4444',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '1rem',
-            }}
+            className={`
+              flex items-center w-full px-3 py-3 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors
+              ${!isSidebarOpen && 'justify-center'}
+            `}
           >
-            <span style={{ marginRight: '0.75rem' }}>🚪</span>
-            <span>Logout</span>
+            <span className="text-xl">🚪</span>
+            {isSidebarOpen && <span className="ml-3 font-medium">Logout</span>}
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="main-content">
-        <header
-          className="flex justify-between items-center"
-          style={{ marginBottom: '2rem' }}
-        >
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-hidden flex flex-col">
+        {/* Top Header */}
+        <header className="h-16 bg-white shadow-sm border-b px-8 flex items-center justify-between z-10">
           <div>
-            <h1
-              style={{
-                fontSize: '1.875rem',
-                fontWeight: 'bold',
-                color: '#1f2937',
-              }}
-            >
-              Welcome, <span style={{ color: '#9333ea' }}>{user?.name}</span>
-            </h1>
-            <p
-              style={{
-                color: '#6b7280',
-                marginTop: '0.25rem',
-              }}
-            >
-              Manage your company profile, job postings, applications and
-              selection process.
-            </p>
+            <h2 className="text-2xl font-bold text-slate-800">
+              Welcome, <span className="text-purple-600">{user?.name}</span>
+            </h2>
+            <p className="text-sm text-slate-500">Recruiter Dashboard</p>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-4">
             <button
-              className="btn"
-              style={{
-                backgroundColor: '#9333ea',
-                color: 'white',
-                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-                transform: 'translateY(0)',
-                transition: 'transform 0.2s',
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.transform = 'translateY(-2px)')
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.transform = 'translateY(0)')
-              }
               onClick={() => setActiveTab('jobPosting')}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md transition-transform transform hover:-translate-y-0.5"
             >
               + Post New Job
             </button>
+            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold border-2 border-white shadow-sm">
+              R
+            </div>
           </div>
         </header>
 
-        {activeTab === 'profile' && (
-          <>
-            {/* Stats Grid */}
-            <div
-              className="grid grid-cols-1 md:grid-cols-3 gap-6"
-              style={{ marginBottom: '2rem' }}
-            >
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, #a855f7, #4f46e5)',
-                  borderRadius: '0.75rem',
-                  padding: '1.5rem',
-                  color: 'white',
-                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-                }}
-              >
-                <div
-                  className="flex justify-between items-center"
-                  style={{ marginBottom: '1rem', opacity: 0.8 }}
-                >
-                  <h3 style={{ fontWeight: 500 }}>Active Job Postings</h3>
-                  <span style={{ fontSize: '1.5rem' }}>📢</span>
-                </div>
-                <p style={{ fontSize: '2.25rem', fontWeight: 'bold' }}>
-                  {activeJobsCount}
-                </p>
-                <p
-                  style={{
-                    fontSize: '0.875rem',
-                    marginTop: '0.5rem',
-                    opacity: 0.75,
-                  }}
-                >
-                  Positions Open
-                </p>
-              </div>
-
-              <div
-                className="stat-card"
-                style={{
-                  borderTopWidth: '4px',
-                  borderLeftWidth: '0',
-                  borderTopColor: '#9333ea',
-                }}
-              >
-                <div
-                  className="flex justify-between items-center"
-                  style={{ marginBottom: '1rem' }}
-                >
-                  <h3 style={{ color: '#6b7280', fontWeight: 500 }}>
-                    Total Applications
-                  </h3>
-                  <span
-                    style={{
-                      fontSize: '1.25rem',
-                      backgroundColor: '#f3e8ff',
-                      color: '#9333ea',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.5rem',
-                    }}
-                  >
-                    📄
-                  </span>
-                </div>
-                <p
-                  style={{
-                    fontSize: '2.25rem',
-                    fontWeight: 'bold',
-                    color: '#1f2937',
-                  }}
-                >
-                  {totalApplicationsCount}
-                </p>
-                <p
-                  style={{
-                    fontSize: '0.875rem',
-                    color: '#16a34a',
-                    marginTop: '0.5rem',
-                    fontWeight: 500,
-                  }}
-                >
-                  Across all jobs
-                </p>
-              </div>
-
-              <div
-                className="stat-card"
-                style={{
-                  borderTopWidth: '4px',
-                  borderLeftWidth: '0',
-                  borderTopColor: '#22c55e',
-                }}
-              >
-                <div
-                  className="flex justify-between items-center"
-                  style={{ marginBottom: '1rem' }}
-                >
-                  <h3 style={{ color: '#6b7280', fontWeight: 500 }}>
-                    Shortlisted Candidates
-                  </h3>
-                  <span
-                    style={{
-                      fontSize: '1.25rem',
-                      backgroundColor: '#dcfce7',
-                      color: '#16a34a',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.5rem',
-                    }}
-                  >
-                    ✅
-                  </span>
-                </div>
-                <p
-                  style={{
-                    fontSize: '2.25rem',
-                    fontWeight: 'bold',
-                    color: '#1f2937',
-                  }}
-                >
-                  {shortlistedCount}
-                </p>
-                <p
-                  style={{
-                    fontSize: '0.875rem',
-                    color: '#6b7280',
-                    marginTop: '0.5rem',
-                    fontWeight: 500,
-                  }}
-                >
-                  Candidates
-                </p>
-              </div>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50">
+          {notification && (
+            <div className={`fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 text-white animate-fadeIn ${notification.type === 'error' ? 'bg-red-500' : 'bg-green-500'
+              }`}>
+              {notification.message}
             </div>
+          )}
 
-            {renderProfileSection()}
-          </>
-        )}
+          <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
 
-        {activeTab === 'jobPosting' && renderJobPostingSection()}
-        {activeTab === 'applicationHandling' && renderApplicationsSection()}
-        {activeTab === 'selectionProcess' && renderSelectionSection()}
+            {/* PROFILE SECTION */}
+            {activeTab === 'profile' && (
+              <div className="grid grid-cols-1 gap-6">
+                {/* Stats Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
+                    <div className="relative z-10">
+                      <p className="text-purple-100 font-medium mb-1">Active Job Postings</p>
+                      <h3 className="text-4xl font-bold">{activeJobsCount}</h3>
+                      <p className="text-xs text-purple-200 mt-2">Positions open for applications</p>
+                    </div>
+                    <div className="absolute right-0 bottom-0 opacity-20 transform translate-x-1/4 translate-y-1/4">
+                      <span className="text-9xl">📢</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-slate-500 font-medium mb-1">Total Applications</p>
+                        <h3 className="text-3xl font-bold text-slate-800">{totalApplicationsCount}</h3>
+                      </div>
+                      <span className="bg-blue-50 text-blue-600 p-2 rounded-lg text-xl">📄</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-green-500">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-slate-500 font-medium mb-1">Shortlisted</p>
+                        <h3 className="text-3xl font-bold text-slate-800">{shortlistedCount}</h3>
+                      </div>
+                      <span className="bg-green-50 text-green-600 p-2 rounded-lg text-xl">✅</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profile Form */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
+                    <h3 className="text-lg font-bold text-slate-800">Company Profile</h3>
+                    <p className="text-sm text-slate-500">Update your company details and description</p>
+                  </div>
+                  <div className="p-6">
+                    <form onSubmit={handleProfileSubmit} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Company Name</label>
+                          <input
+                            type="text"
+                            name="name"
+                            value={companyProfile.name}
+                            onChange={handleProfileChange}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                            placeholder="Enter company name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
+                          <input
+                            type="text"
+                            name="location"
+                            value={companyProfile.location}
+                            onChange={handleProfileChange}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                            placeholder="City, Country"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Website</label>
+                          <input
+                            type="url"
+                            name="website"
+                            value={companyProfile.website}
+                            onChange={handleProfileChange}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                            placeholder="https://example.com"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Company Description</label>
+                          <textarea
+                            name="description"
+                            value={companyProfile.description}
+                            onChange={handleProfileChange}
+                            rows={4}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                            placeholder="Describe your company culture, values, and vision..."
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <button
+                          type="submit"
+                          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium shadow-md transition-colors"
+                        >
+                          Save Profile
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* JOB POSTING SECTION */}
+            {activeTab === 'jobPosting' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Create Job Form */}
+                <div className="lg:col-span-1">
+                  <div className="bg-white rounded-xl shadow-md border border-slate-200 sticky top-6">
+                    <div className="px-6 py-4 border-b border-slate-100 bg-purple-50">
+                      <h3 className="text-lg font-bold text-purple-800">
+                        {editingJobId ? 'Edit Job Posting' : 'Create New Job'}
+                      </h3>
+                    </div>
+                    <div className="p-6">
+                      <form onSubmit={handleJobSubmit} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Job Title</label>
+                          <input
+                            type="text"
+                            name="title"
+                            value={jobForm.title}
+                            onChange={handleJobFormChange}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            placeholder="e.g. Senior Developer"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                          <textarea
+                            name="description"
+                            value={jobForm.description}
+                            onChange={handleJobFormChange}
+                            rows={4}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            placeholder="Job details..."
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Eligibility</label>
+                          <textarea
+                            name="eligibility"
+                            value={jobForm.eligibility}
+                            onChange={handleJobFormChange}
+                            rows={2}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            placeholder="Requirements..."
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium shadow transition-colors"
+                        >
+                          {editingJobId ? 'Update Job' : 'Post Job'}
+                        </button>
+                        {editingJobId && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingJobId(null);
+                              setJobForm({ title: '', description: '', eligibility: '' });
+                            }}
+                            className="w-full bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 py-2 rounded-lg font-medium transition-colors"
+                          >
+                            Cancel Edit
+                          </button>
+                        )}
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Job List */}
+                <div className="lg:col-span-2 space-y-4">
+                  <h3 className="text-xl font-bold text-slate-800 mb-4">Current Openings</h3>
+                  {jobPostings.length === 0 ? (
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+                      <span className="text-4xl block mb-2">📭</span>
+                      <p className="text-slate-500">No active job postings. Create one to get started.</p>
+                    </div>
+                  ) : (
+                    jobPostings.map((job) => (
+                      <div key={job.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="text-lg font-bold text-slate-800">{job.title}</h4>
+                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full mt-1 inline-block">Active</span>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleEditJob(job)}
+                              className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-full transition-colors"
+                              title="Edit"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleDeleteJob(job.id)}
+                              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                              title="Delete"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-xs font-semibold text-slate-500 uppercase">Description</p>
+                            <p className="text-sm text-slate-700 mt-1">{job.description}</p>
+                          </div>
+                          {job.eligibility && (
+                            <div>
+                              <p className="text-xs font-semibold text-slate-500 uppercase">Eligibility</p>
+                              <p className="text-sm text-slate-700 mt-1 bg-slate-50 p-2 rounded border border-slate-100 inline-block font-mono text-xs">
+                                {job.eligibility}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* APPLICATIONS SECTION */}
+            {activeTab === 'applicationHandling' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-slate-800">Received Applications</h3>
+                  <div className="flex gap-2">
+                    <span className="text-sm text-slate-500">Filter by:</span>
+                    <select className="text-sm border-slate-300 rounded-md shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50">
+                      <option>All Jobs</option>
+                    </select>
+                  </div>
+                </div>
+
+                {applications.length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
+                    <p className="text-slate-500">No applications received yet.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {applications.map((app) => (
+                      <div key={app.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                        <div className="p-6 flex-1">
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-xl">
+                              👨‍🎓
+                            </div>
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${app.status === 'Shortlisted' ? 'bg-green-100 text-green-800' :
+                                app.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                                  'bg-blue-100 text-blue-800'
+                              }`}>
+                              {app.status}
+                            </span>
+                          </div>
+                          <h4 className="text-lg font-bold text-slate-800 mb-1">{app.name}</h4>
+                          <p className="text-sm text-slate-500 mb-4">{app.course}</p>
+
+                          <a href={app.resumeUrl} className="text-sm text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1 mb-4">
+                            <span>📄</span> View Resume
+                          </a>
+                        </div>
+                        <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 grid grid-cols-2 gap-3">
+                          <button
+                            onClick={() => updateApplicationStatus(app.id, 'Shortlisted')}
+                            className="flex items-center justify-center gap-1 bg-white border border-green-200 text-green-700 hover:bg-green-50 py-2 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            ✅ Shortlist
+                          </button>
+                          <button
+                            onClick={() => updateApplicationStatus(app.id, 'Rejected')}
+                            className="flex items-center justify-center gap-1 bg-white border border-red-200 text-red-700 hover:bg-red-50 py-2 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            ❌ Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SELECTION PROCESS SECTION */}
+            {activeTab === 'selectionProcess' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Interview Schedule */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-100 bg-indigo-50">
+                    <h3 className="text-lg font-bold text-indigo-900">📅 Schedule Interview</h3>
+                  </div>
+                  <div className="p-6">
+                    <form onSubmit={handleInterviewSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Candidate Name</label>
+                        <input
+                          type="text"
+                          name="candidate"
+                          value={interviewSchedule.candidate}
+                          onChange={handleInterviewChange}
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                          placeholder="Enter name"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                          <input
+                            type="date"
+                            name="date"
+                            value={interviewSchedule.date}
+                            onChange={handleInterviewChange}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Time</label>
+                          <input
+                            type="time"
+                            name="time"
+                            value={interviewSchedule.time}
+                            onChange={handleInterviewChange}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="submit"
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium shadow transition-colors"
+                      >
+                        Schedule Interview
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                {/* Final Selection List */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-100 bg-green-50 flex justify-between items-center">
+                    <h3 className="text-lg font-bold text-green-900">🏆 Final Selection</h3>
+                    {isPublished && <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">Published</span>}
+                  </div>
+                  <div className="p-6">
+                    <p className="text-slate-500 text-sm mb-4">Select candidates to mark them as final selects for your company.</p>
+                    <div className="space-y-3 mb-6">
+                      {selectionList.map((cand) => (
+                        <div
+                          key={cand.id}
+                          className={`flex justify-between items-center p-3 rounded-lg border transition-colors ${cand.selected ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200'
+                            }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${cand.selected ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
+                              }`}>
+                              {cand.name.charAt(0)}
+                            </div>
+                            <div>
+                              <p className={`font-medium ${cand.selected ? 'text-green-900' : 'text-slate-700'}`}>{cand.name}</p>
+                              <p className="text-xs text-slate-500">{cand.selected ? 'Selected' : 'Pending Review'}</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => toggleSelectedCandidate(cand.id)}
+                            className={`text-sm font-medium px-3 py-1 rounded-md transition-colors ${cand.selected
+                                ? 'bg-white text-red-600 border border-red-100 hover:bg-red-50'
+                                : 'bg-green-600 text-white hover:bg-green-700'
+                              }`}
+                          >
+                            {cand.selected ? 'Remove' : 'Select'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={publishSelectedList}
+                      className="w-full bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-lg font-medium shadow-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span>🚀</span>
+                      {isPublished ? 'Update Published List' : 'Publish Final List'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
       </main>
     </div>
   );

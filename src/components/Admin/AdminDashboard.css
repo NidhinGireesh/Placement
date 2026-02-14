@@ -1,0 +1,198 @@
+/* AdminDashboard.css */
+
+.admin-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    background-color: #111827;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #1f2937;
+}
+
+.brand-dot {
+    color: #ef4444;
+}
+
+.sidebar-nav {
+    margin-top: 1rem;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    width: 100%;
+    text-align: left;
+    border: none;
+    cursor: pointer;
+    background-color: transparent;
+    color: #9ca3af;
+    border-right: 4px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.sidebar-item:hover,
+.sidebar-item.active {
+    background-color: #1f2937;
+    color: white;
+}
+
+.sidebar-item.active {
+    border-right-color: #ef4444;
+}
+
+.sidebar-icon {
+    margin-right: 0.75rem;
+    font-size: 1.1rem;
+}
+
+.sidebar-label {
+    font-weight: 600;
+}
+
+.sidebar-footer {
+    padding: 1.5rem;
+}
+
+.logout-btn {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* Sub-menu */
+.submenu-toggle-icon {
+    font-size: 0.8rem;
+}
+
+.submenu-container {
+    background-color: #111827;
+    padding-left: 3rem;
+}
+
+.submenu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 0;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.submenu-item.active {
+    color: white;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    padding: 2rem;
+    background-color: #f9fafb;
+}
+
+/* Dashboard Overview */
+.page-title {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+}
+
+.stat-title {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: bold;
+}
+
+/* Tables & Lists (Reusable) */
+.card-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.data-table {
+    width: 100%;
+    margin-top: 1rem;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.action-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-approve {
+    padding: 0.3rem 0.6rem;
+    background-color: #22c55e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-reject {
+    padding: 0.3rem 0.6rem;
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.status-badge.approved {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.rejected {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.no-actions {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
