@@ -19,7 +19,7 @@ const CoordinatorSidebar = ({ onLogout }) => {
     );
 
     return (
-        <aside className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col fixed left-0 top-0 overflow-y-auto z-10">
+        <aside className="w-full h-full flex flex-col bg-white overflow-hidden">
             <div className="p-6 border-b border-gray-100">
                 <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-500">
                     Coordinator

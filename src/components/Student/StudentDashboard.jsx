@@ -15,6 +15,7 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState('overview');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [studentProfile, setStudentProfile] = useState(null);
 
   useEffect(() => {
@@ -40,7 +41,10 @@ export default function StudentDashboard() {
 
   const SidebarItem = ({ id, icon, label }) => (
     <button
-      onClick={() => setActiveTab(id)}
+      onClick={() => {
+        setActiveTab(id);
+        setIsMobileMenuOpen(false); // Close menu on selection
+      }}
       className={`w-full flex items-center px-6 py-4 transition-colors duration-200 
         ${activeTab === id
           ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600'
@@ -167,14 +171,42 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans">
+    <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
+      {/* Mobile Hamburger Button */}
+      <div className="md:hidden fixed top-4 left-4 z-50">
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 rounded-lg bg-white shadow-md text-gray-600 hover:text-blue-600 focus:outline-none"
+        >
+          {isMobileMenuOpen ? (
+            <span className="text-2xl">✕</span>
+          ) : (
+            <span className="text-2xl">☰</span>
+          )}
+        </button>
+      </div>
+
+      {/* Overlay for mobile */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        ></div>
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 h-full z-10">
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-            Student Portal
-          </h2>
-          <p className="text-xs text-gray-400 mt-1">Placement Management System</p>
+      <aside className={`
+        fixed md:static inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 flex flex-col 
+        transition-transform duration-300 ease-in-out
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+              Student Portal
+            </h2>
+            <p className="text-xs text-gray-400 mt-1">Placement Management System</p>
+          </div>
         </div>
 
         <nav className="flex-1 py-4 overflow-y-auto">
@@ -198,7 +230,7 @@ export default function StudentDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 ml-64 p-8 overflow-y-auto">
+      <main className="flex-1 p-8 overflow-y-auto w-full pt-16 md:pt-8">
         <div className="max-w-7xl mx-auto">
           {renderContent()}
         </div>
