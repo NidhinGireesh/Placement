@@ -1,12 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logoutUser } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
+import { getStudentProfile } from '../../services/studentService';
+
+// Components
+import StudentProfile from './StudentProfile';
+import JobBoard from './JobBoard';
+import ApplicationTracking from './ApplicationTracking';
+import InterviewSchedule from './InterviewSchedule';
+import StudentTraining from './StudentTraining';
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState('overview');
+  const [studentProfile, setStudentProfile] = useState(null);
+
+  useEffect(() => {
+    if (user?.uid) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    const result = await getStudentProfile(user.uid);
+    if (result.success) {
+      setStudentProfile(result);
+    }
+  };
 
   const handleLogout = async () => {
     const result = await logoutUser();
@@ -19,127 +41,166 @@ export default function StudentDashboard() {
   const SidebarItem = ({ id, icon, label }) => (
     <button
       onClick={() => setActiveTab(id)}
-      className={`sidebar-item ${activeTab === id ? 'active' : ''}`}
+      className={`w-full flex items-center px-6 py-4 transition-colors duration-200 
+        ${activeTab === id
+          ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600'
+          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+        }`}
     >
-      <span style={{ marginRight: '0.75rem', fontSize: '1.25rem' }}>{icon}</span>
-      <span style={{ fontWeight: 600 }}>{label}</span>
+      <span className="text-xl mr-3">{icon}</span>
+      <span className="font-semibold">{label}</span>
     </button>
   );
 
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'verified': return 'text-green-500';
+      case 'approved': return 'text-green-500';
+      case 'rejected': return 'text-red-500';
+      default: return 'text-yellow-500';
+    }
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <>
+            {/* Top Header */}
+            <header className="flex justify-between items-center mb-8">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800">
+                  Welcome back, <span className="text-blue-600">{user?.name}</span>! 👋
+                </h1>
+                <p className="text-gray-500 mt-1">Here's what's happening with your applications today.</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shadow-sm">
+                  {user?.name?.charAt(0) || 'S'}
+                </div>
+              </div>
+            </header>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className={`stat-card border-l-4 ${getStatusColor(studentProfile?.approvalStatus).replace('text-', 'border-l-')}`}>
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Profile Status</h3>
+                <p className={`text-2xl font-bold mt-1 ${getStatusColor(studentProfile?.approvalStatus)}`}>
+                  {studentProfile?.approvalStatus || 'Pending'}
+                </p>
+              </div>
+
+              <div className="stat-card border-l-blue-500">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Active Apps</h3>
+                <p className="text-3xl font-bold text-gray-800 mt-1">3</p>
+              </div>
+
+              <div className="stat-card border-l-purple-500">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Interviews</h3>
+                <p className="text-3xl font-bold text-gray-800 mt-1">1</p>
+              </div>
+
+              <div className="stat-card border-l-green-500">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Placement</h3>
+                <p className="text-xl font-bold text-gray-800 mt-2">Not Yet</p>
+              </div>
+            </div>
+
+            {/* Quick Actions / Recent Updates */}
+            <div className="bg-white rounded-xl p-8 shadow-sm">
+              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded-lg mr-3 text-base">📢</span>
+                Recent Updates
+              </h2>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold text-gray-800">Complete Your Profile</h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Please ensure your profile is 100% complete to apply for upcoming drives.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('profile')}
+                      className="text-xs font-semibold bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full hover:bg-yellow-200 transition-colors"
+                    >
+                      Action Required
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold text-gray-800">New Job Posted: TechCorp Solutions</h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Software Engineer role available in Bangalore.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('jobs')}
+                      className="text-xs font-semibold bg-green-100 text-green-800 px-3 py-1 rounded-full hover:bg-green-200 transition-colors"
+                    >
+                      Apply Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      case 'profile':
+        return <StudentProfile />;
+      case 'jobs':
+        return <JobBoard />;
+      case 'applications':
+        return <ApplicationTracking />;
+      case 'interviews':
+        return <InterviewSchedule />;
+      case 'training':
+        return <StudentTraining />;
+      default:
+        return <div>Select a tab</div>;
+    }
+  };
+
   return (
-    <div className="dashboard-container">
+    <div className="flex h-screen bg-gray-50 font-sans">
       {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <h2 style={{
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            background: 'linear-gradient(to right, #2563eb, #4f46e5)',
-            WebkitBackgroundClip: 'text',
-            color: 'transparent'
-          }}>
+      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 h-full z-10">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
             Student Portal
           </h2>
-          <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>Placement Management System</p>
+          <p className="text-xs text-gray-400 mt-1">Placement Management System</p>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="flex-1 py-4 overflow-y-auto">
           <SidebarItem id="overview" icon="📊" label="Overview" />
           <SidebarItem id="profile" icon="👨‍🎓" label="My Profile" />
           <SidebarItem id="jobs" icon="💼" label="Job Board" />
           <SidebarItem id="applications" icon="📝" label="Applications" />
           <SidebarItem id="interviews" icon="🤝" label="Interviews" />
+          <SidebarItem id="training" icon="📚" label="Courses & Training" />
         </nav>
 
-        <div style={{ padding: '1.5rem', marginTop: 'auto', borderTop: '1px solid #e5e7eb' }}>
+        <div className="p-4 border-t border-gray-100">
           <button
             onClick={handleLogout}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              color: '#ef4444',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '1rem'
-            }}
+            className="flex items-center w-full px-4 py-2 text-red-500 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors font-semibold"
           >
-            <span style={{ marginRight: '0.75rem' }}>🚪</span>
+            <span className="mr-3 text-xl">🚪</span>
             <span>Logout</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="main-content">
-        {/* Top Header */}
-        <header className="flex justify-between items-center" style={{ marginBottom: '2rem' }}>
-          <div>
-            <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937' }}>
-              Welcome back, <span style={{ color: '#2563eb' }}>{user?.name}</span>! 👋
-            </h1>
-            <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Here's what's happening with your applications today.</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div style={{
-              height: '2.5rem',
-              width: '2.5rem',
-              borderRadius: '50%',
-              backgroundColor: '#dbeafe',
-              color: '#2563eb',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold',
-              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
-            }}>
-              {user?.name?.charAt(0) || 'S'}
-            </div>
-          </div>
-        </header>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-4 gap-6" style={{ marginBottom: '2rem' }}>
-          <div className="stat-card" style={{ borderLeftColor: '#facc15' }}>
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Profile Status</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b', marginTop: '0.25rem' }}>Pending</p>
-          </div>
-
-          <div className="stat-card" style={{ borderLeftColor: '#3b82f6' }}>
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Apps</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', marginTop: '0.25rem' }}>0</p>
-          </div>
-
-          <div className="stat-card" style={{ borderLeftColor: '#a855f7' }}>
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Interviews</h3>
-            <p style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', marginTop: '0.25rem' }}>0</p>
-          </div>
-
-          <div className="stat-card" style={{ borderLeftColor: '#22c55e' }}>
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Placement</h3>
-            <p style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#1f2937', marginTop: '0.5rem' }}>Not Yet</p>
-          </div>
-        </div>
-
-        {/* Content Area Example */}
-        <div style={{ backgroundColor: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1.5rem', display: 'flex', alignItems: 'center' }}>
-            <span style={{ backgroundColor: '#dbeafe', color: '#2563eb', padding: '0.25rem 0.5rem', borderRadius: '0.5rem', marginRight: '0.75rem', fontSize: '1rem' }}>📢</span>
-            Recent Updates
-          </h2>
-
-          <div className="space-y-4">
-            <div style={{ padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 style={{ fontWeight: 'bold', color: '#1f2937' }}>Profile Complete?</h4>
-                  <p style={{ fontSize: '0.875rem', color: '#4b5563', marginTop: '0.25rem' }}>Please ensure your profile is 100% complete to apply for upcoming drives.</p>
-                </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, backgroundColor: '#fef3c7', color: '#b45309', padding: '0.25rem 0.75rem', borderRadius: '9999px' }}>Action Required</span>
-              </div>
-            </div>
-          </div>
+      <main className="flex-1 ml-64 p-8 overflow-y-auto">
+        <div className="max-w-7xl mx-auto">
+          {renderContent()}
         </div>
       </main>
     </div>

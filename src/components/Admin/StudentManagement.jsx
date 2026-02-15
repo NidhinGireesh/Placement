@@ -31,7 +31,7 @@ export default function StudentManagement() {
         const result = await addUserDoc({
             name: newStudent.name,
             email: newStudent.email,
-            department: newStudent.department,
+            department: newStudent.department, // This saves to 'users' collection
             role: 'student',
             createdAt: new Date()
         });
@@ -47,7 +47,7 @@ export default function StudentManagement() {
     };
 
     const approveStudent = async (id) => {
-        const result = await updateUserStatus(id, { status: 'approved' });
+        const result = await updateUserStatus(id, { status: 'approved', approved: true });
         if (result.success) {
             setStudents((prev) =>
                 prev.map((student) =>
@@ -191,8 +191,8 @@ export default function StudentManagement() {
                                             <td className="px-6 py-4 text-slate-600">{student.department || '-'}</td>
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${student.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                                        student.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                            'bg-yellow-100 text-yellow-800'
+                                                    student.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                        'bg-yellow-100 text-yellow-800'
                                                     }`}>
                                                     {student.status || 'pending'}
                                                 </span>
@@ -216,8 +216,8 @@ export default function StudentManagement() {
                                                     <button
                                                         onClick={() => toggleBlockStudent(student.id, student.blocked)}
                                                         className={`px-3 py-1 rounded-md text-sm transition-colors border ${student.blocked
-                                                                ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                                                                : 'border-orange-200 text-orange-600 hover:bg-orange-50'
+                                                            ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                                                            : 'border-orange-200 text-orange-600 hover:bg-orange-50'
                                                             }`}
                                                     >
                                                         {student.blocked ? 'Unblock' : 'Block'}

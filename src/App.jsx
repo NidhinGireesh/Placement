@@ -16,6 +16,13 @@ import AdminDashboard from './components/Admin/AdminDashboard';
 import CoordinatorDashboard from './components/Coordinator/CoordinatorDashboard';
 import RecruiterDashboard from './components/Recruiter/RecruiterDashboard';
 
+// Student Modules (Reused for Coordinator)
+import StudentProfile from './components/Student/StudentProfile';
+import JobBoard from './components/Student/JobBoard';
+import ApplicationTracking from './components/Student/ApplicationTracking';
+import InterviewSchedule from './components/Student/InterviewSchedule';
+import StudentTraining from './components/Student/StudentTraining';
+
 // Coordinator Modules
 import DashboardOverview from './components/Coordinator/DashboardOverview';
 import StudentVerification from './components/Coordinator/StudentVerification';
@@ -90,6 +97,13 @@ function App() {
         <Route path="training" element={<TrainingWorkshop />} />
         <Route path="post-announcement" element={<PostAnnouncement />} />
         <Route path="schedule-interview" element={<ScheduleInterview />} />
+
+        {/* Student Features for Coordinator */}
+        <Route path="student-profile" element={<StudentProfile />} />
+        <Route path="student-jobs" element={<JobBoard />} />
+        <Route path="student-applications" element={<ApplicationTracking />} />
+        <Route path="student-interviews" element={<InterviewSchedule />} />
+        <Route path="student-training" element={<StudentTraining />} />
       </Route>
       <Route
         path="/recruiter/*"

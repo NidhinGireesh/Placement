@@ -31,13 +31,16 @@ export default function RecruiterManagement() {
             company: newRecruiter.company,
             email: newRecruiter.email,
             role: 'recruiter',
-            createdAt: new Date()
+            createdAt: new Date(),
+            company: newRecruiter.company // Ensure this key is consistent with authService
         });
 
         if (result.success) {
             fetchRecruiters();
             setShowAddForm(false);
             setNewRecruiter({ company: '', email: '' });
+        } else {
+            alert('Error adding recruiter: ' + result.error);
         }
         setLoading(false);
     };
@@ -51,16 +54,7 @@ export default function RecruiterManagement() {
         }
     };
 
-    const toggleBlockRecruiter = async (id, currentBlockedStatus) => {
-        const result = await updateUserStatus(id, { blocked: !currentBlockedStatus });
-        if (result.success) {
-            setRecruiters((prev) =>
-                prev.map((recruiter) =>
-                    recruiter.id === id ? { ...recruiter, blocked: !recruiter.blocked } : recruiter
-                )
-            );
-        }
-    };
+
 
     return (
         <div>
@@ -125,44 +119,65 @@ export default function RecruiterManagement() {
                                 <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold">
                                     <th className="px-6 py-4">Company</th>
                                     <th className="px-6 py-4">Email</th>
-                                    <th className="px-6 py-4">Blocked</th>
+                                    <th className="px-6 py-4">Industry</th>
+                                    <th className="px-6 py-4">Location</th>
+                                    <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {recruiters.length === 0 ? (
                                     <tr>
-                                        <td colSpan="4" className="px-6 py-8 text-center text-slate-500">
+                                        <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
                                             No recruiters found.
                                         </td>
                                     </tr>
                                 ) : (
                                     recruiters.map((rec) => (
                                         <tr key={rec.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4 font-medium text-slate-800">{rec.company}</td>
+                                            <td className="px-6 py-4 font-medium text-slate-800">
+                                                <div>{rec.company || rec.name}</div>
+                                                {rec.website && (
+                                                    <a href={rec.website} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-500 hover:underline">
+                                                        Visit Website
+                                                    </a>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 text-slate-600">{rec.email}</td>
+                                            <td className="px-6 py-4 text-slate-600">{rec.industry || '-'}</td>
+                                            <td className="px-6 py-4 text-slate-600">{rec.location || '-'}</td>
                                             <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${rec.blocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${rec.approved ? 'bg-green-100 text-green-800' :
+                                                    rec.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                                                        'bg-yellow-100 text-yellow-800'
                                                     }`}>
-                                                    {rec.blocked ? 'Yes' : 'No'}
+                                                    {rec.approved ? 'Approved' : (rec.status || 'Pending')}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <button
-                                                        onClick={() => toggleBlockRecruiter(rec.id, rec.blocked)}
-                                                        className={`px-3 py-1 rounded-md text-sm transition-colors border ${rec.blocked
-                                                                ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                                                                : 'border-orange-200 text-orange-600 hover:bg-orange-50'
-                                                            }`}
-                                                    >
-                                                        {rec.blocked ? 'Unblock' : 'Block'}
-                                                    </button>
+                                                    {!rec.approved && (rec.status !== 'Rejected') && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => updateUserStatus(rec.id, { approved: true, status: 'Approved' }).then(() => fetchRecruiters())}
+                                                                className="text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-md text-sm transition-colors"
+                                                            >
+                                                                Approve
+                                                            </button>
+                                                            <button
+                                                                onClick={() => updateUserStatus(rec.id, { approved: false, status: 'Rejected' }).then(() => fetchRecruiters())}
+                                                                className="text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded-md text-sm transition-colors"
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                        </>
+                                                    )}
                                                     <button
                                                         onClick={() => removeRecruiter(rec.id)}
-                                                        className="text-red-600 hover:bg-red-50 px-3 py-1 rounded-md text-sm transition-colors"
+                                                        className="text-white bg-slate-500 hover:bg-slate-600 px-3 py-1 rounded-md text-sm transition-colors"
+                                                        title="Delete Recruiter"
                                                     >
-                                                        Remove
+                                                        Delete
                                                     </button>
                                                 </div>
                                             </td>

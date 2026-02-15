@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, addDoc, collection } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseConfig';
@@ -21,12 +22,19 @@ export const registerUser = async (email, password, userData) => {
       email: email,
       phone: userData.phone || '',
       role: userData.role,
-      approved: userData.role === 'admin' ? true : false,
+      approved: false, // Default to false for ALL roles including admin
       createdAt: new Date(),
+      // Add extra fields to main user doc for Admin easy access
+      department: userData.branch || userData.department || '', // For student (branch) or coordinator (department)
+      class: userData.role === 'coordinator' ? `${userData.branch}-${userData.passoutYear}` : (userData.coordinatorClass || ''), // Derived class for coordinator
+      company: userData.role === 'recruiter' ? userData.name : (userData.company || ''), // For recruiter, use name as company
+      website: userData.website || '',
+      industry: userData.industry || '',
+      location: userData.location || '',
     });
 
-    // If role is student, create student profile
-    if (userData.role === 'student') {
+    // If role is student OR coordinator, create student profile
+    if (userData.role === 'student' || userData.role === 'coordinator') {
       await addDoc(collection(db, 'students'), {
         userId: uid,
         registerNumber: userData.registerNumber || '',
@@ -34,7 +42,7 @@ export const registerUser = async (email, password, userData) => {
         branch: userData.branch || '',
         gender: userData.gender || '',
         dob: userData.dob || null,
-        lateralEntry: 'no',
+        lateralEntry: userData.lateralEntry || 'no',
         cgpa: 0,
         skills: [],
         resumeUrl: '',
@@ -42,6 +50,8 @@ export const registerUser = async (email, password, userData) => {
         approvalStatus: 'pending',
         createdAt: new Date(),
         updatedAt: new Date(),
+        // Extra field to identify actual role in students collection if needed
+        originalRole: userData.role
       });
     }
 
@@ -60,11 +70,21 @@ export const loginUser = async (email, password) => {
     // Get user role from Firestore
     const userDoc = await getDoc(doc(db, 'users', uid));
     if (userDoc.exists()) {
+      const userData = userDoc.data();
+
+      // Check approval status for restricted roles (Coordinator, Recruiter, Student, Admin)
+      const isApproved = userData.approved === true || userData.status === 'approved' || userData.status === 'Verified';
+
+      if ((userData.role === 'coordinator' || userData.role === 'recruiter' || userData.role === 'student' || userData.role === 'admin') && !isApproved) {
+        await signOut(auth);
+        return { success: false, error: 'Your account is pending approval.' };
+      }
+
       return {
         uid,
-        email: userDoc.data().email,
-        role: userDoc.data().role,
-        name: userDoc.data().name,
+        email: userData.email,
+        role: userData.role,
+        name: userData.name,
         success: true,
       };
     }
@@ -81,6 +101,16 @@ export const logoutUser = async () => {
   } catch (error) {
     console.error('Logout error:', error);
     return { error: error.message, success: false };
+  }
+};
+
+export const resetPassword = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return { success: true };
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return { success: false, error: error.message };
   }
 };
 

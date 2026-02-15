@@ -9,6 +9,7 @@ import CoordinatorManagement from './CoordinatorManagement';
 import JobDashboard from './JobManagement/JobDashboard';
 import CourseDashboard from './CourseManagement/CourseDashboard';
 import ReportsDashboard from './Reports/ReportsDashboard';
+import AdminManagement from './AdminManagement';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
@@ -36,7 +37,10 @@ export default function AdminDashboard() {
     { id: 'coordinators', label: 'Coordinators', icon: '👔' },
     { id: 'jobs', label: 'Jobs & Placements', icon: '💼' },
     { id: 'courses', label: 'Training & Courses', icon: '📚' },
+
+
     { id: 'reports', label: 'Reports', icon: '📑' },
+    { id: 'admins', label: 'Admins', icon: '🛡️' }, // Admin Management Tab
   ];
 
   return (
@@ -132,6 +136,7 @@ export default function AdminDashboard() {
             {activeTab === 'jobs' && <JobDashboard />}
             {activeTab === 'courses' && <CourseDashboard />}
             {activeTab === 'reports' && <ReportsDashboard />}
+            {activeTab === 'admins' && <AdminManagement />}
           </div>
         </div>
       </main>

@@ -30,11 +30,18 @@ const CoordinatorSidebar = ({ onLogout }) => {
             <nav className="flex-1 py-6 space-y-1">
                 <SidebarItem to="/coordinator" icon="📊" label="Overview" />
                 <SidebarItem to="/coordinator/verification" icon="✅" label="Verification" />
-                {/* Job Monitoring removed */}
-                {/* Application Tracking removed */}
                 <SidebarItem to="/coordinator/schedule-interview" icon="🗓️" label="Schedule Interview" />
                 <SidebarItem to="/coordinator/communication" icon="📢" label="Communication" />
-                <SidebarItem to="/coordinator/training" icon="🎓" label="Training" />
+                <SidebarItem to="/coordinator/training" icon="🎓" label="Manage Training" />
+
+                <div className="pt-4 pb-2">
+                    <p className="px-6 text-xs font-semibold text-gray-400 uppercase tracking-wider">Student View</p>
+                </div>
+                <SidebarItem to="/coordinator/student-profile" icon="👨‍🎓" label="My Profile" />
+                <SidebarItem to="/coordinator/student-jobs" icon="💼" label="Job Board" />
+                <SidebarItem to="/coordinator/student-applications" icon="📝" label="My Applications" />
+                <SidebarItem to="/coordinator/student-interviews" icon="🤝" label="My Interviews" />
+                <SidebarItem to="/coordinator/student-training" icon="📚" label="My Training" />
             </nav>
 
             <div className="p-6 border-t border-gray-100">
