@@ -2,28 +2,42 @@
 
 :root {
   /* Modern Premium Palette (Light Mode) */
-  --primary: #4F46E5;       /* Indigo 600 */
-  --primary-dark: #4338CA;  /* Indigo 700 */
-  --secondary: #0EA5E9;     /* Sky 500 */
-  --accent: #8B5CF6;        /* Violet 500 */
-  --background: #F8FAFC;    /* Slate 50 */
+  --primary: #4F46E5;
+  /* Indigo 600 */
+  --primary-dark: #4338CA;
+  /* Indigo 700 */
+  --secondary: #0EA5E9;
+  /* Sky 500 */
+  --accent: #8B5CF6;
+  /* Violet 500 */
+  --background: #F8FAFC;
+  /* Slate 50 */
   --surface: #FFFFFF;
-  --text-main: #0F172A;     /* Slate 900 */
-  --text-muted: #64748B;    /* Slate 500 */
+  --text-main: #0F172A;
+  /* Slate 900 */
+  --text-muted: #64748B;
+  /* Slate 500 */
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(255, 255, 255, 0.5);
 }
 
 /* Dark Mode Variables */
 .dark {
-  --primary: #6366F1;       /* Indigo 500 */
+  --primary: #6366F1;
+  /* Indigo 500 */
   --primary-dark: #4F46E5;
-  --secondary: #38BDF8;     /* Sky 400 */
-  --accent: #A78BFA;        /* Violet 400 */
-  --background: #0F172A;    /* Slate 900 */
-  --surface: #1E293B;       /* Slate 800 */
-  --text-main: #F1F5F9;     /* Slate 100 */
-  --text-muted: #94A3B8;    /* Slate 400 */
+  --secondary: #38BDF8;
+  /* Sky 400 */
+  --accent: #A78BFA;
+  /* Violet 400 */
+  --background: #0F172A;
+  /* Slate 900 */
+  --surface: #1E293B;
+  /* Slate 800 */
+  --text-main: #F1F5F9;
+  /* Slate 100 */
+  --text-muted: #94A3B8;
+  /* Slate 400 */
   --glass-bg: rgba(15, 23, 42, 0.7);
   --glass-border: rgba(255, 255, 255, 0.1);
 }
@@ -78,9 +92,17 @@ body {
 }
 
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 @tailwind base;
@@ -91,8 +113,54 @@ body {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
-    scrollbar-width: none; 
+    scrollbar-width: none;
   }
+}
+
+/* Custom Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes vertical-scroll {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }

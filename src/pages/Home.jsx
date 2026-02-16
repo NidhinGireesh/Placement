@@ -1,27 +1,33 @@
-import NewsTicker from '../components/Home/NewsTicker';
-import QuoteCard from '../components/Home/QuoteCard';
-import AchievementCard from '../components/Home/AchievementCard';
-import CompanySpotlight from '../components/Home/CompanySpotlight';
-import DailyTip from '../components/Home/DailyTip';
-import UpcomingDrives from '../components/Home/UpcomingDrives';
-import PollWidget from '../components/Home/PollWidget';
-import QuickResources from '../components/Home/QuickResources';
-import FAQSection from '../components/Home/FAQSection';
-import ContactFloatingButton from '../components/Home/ContactFloatingButton';
-import { useAuthStore } from '../store/authStore';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+
+// Components
+import HeroSection from '../components/Home/HeroSection';
+import PlacementStats from '../components/Home/PlacementStats';
+import TopRecruiters from '../components/Home/TopRecruiters';
+import HowItWorks from '../components/Home/HowItWorks';
+import UpcomingDrives from '../components/Home/UpcomingDrives';
+import Testimonials from '../components/Home/Testimonials';
+import PlacementChart from '../components/Home/PlacementChart';
+import Features from '../components/Home/Features';
+import NoticeBoard from '../components/Home/NoticeBoard';
+import FAQSection from '../components/Home/FAQSection';
+import ContactSection from '../components/Home/ContactSection';
+import Footer from '../components/Footer';
 
 export default function Home() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
-      {/* Navigation Bar */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
+
+      {/* Navigation Bar (Inline for now, could be extracted) */}
+      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
+          <div className="flex justify-between h-16 items-center">
+            <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
               <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
                 Placement<span className="text-gray-700">Cell</span>
               </span>
@@ -31,13 +37,13 @@ export default function Home() {
                 <>
                   <button
                     onClick={() => navigate('/login')}
-                    className="text-gray-600 hover:text-blue-600 font-medium px-3 py-2 transition-colors"
+                    className="text-gray-600 hover:text-blue-600 font-medium px-3 py-2 transition-colors hidden sm:block"
                   >
-                    Login
+                    Student Login
                   </button>
                   <button
                     onClick={() => navigate('/register')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full font-medium shadow-md transition-all hover:shadow-lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full font-medium shadow-md transition-all hover:shadow-lg transform hover:-translate-y-0.5"
                   >
                     Register
                   </button>
@@ -55,98 +61,43 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* 5. News Ticker (Full Width) */}
-      <NewsTicker />
+      <main className="flex-grow">
+        {/* 1. Hero Section */}
+        <HeroSection user={user} />
 
-      {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        {/* 2. Placement Highlights */}
+        <PlacementStats />
 
-        {/* Welcome Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">
-            {user ? `Welcome back, ${user.name}! 👋` : 'Welcome to Your Future 🚀'}
-          </h1>
-          <p className="text-gray-500 mt-1">
-            {user ? "Let's get you placed in your dream company." : "Your gateway to top placements and career growth."}
-          </p>
-        </div>
+        {/* 3. Top Recruiters */}
+        <TopRecruiters />
 
-        {/* Top Grid: Hero Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
-          {/* 1. Quote (Left - 4 cols) */}
-          <div className="md:col-span-4">
-            <QuoteCard />
-          </div>
+        {/* 4. How It Works */}
+        <HowItWorks />
 
-          {/* 8. Achievement (Middle - 4 cols) */}
-          <div className="md:col-span-4">
-            <AchievementCard />
-          </div>
+        {/* 5. Upcoming Drives */}
+        <UpcomingDrives />
 
-          {/* 2. Company Spotlight (Right - 4 cols) */}
-          <div className="md:col-span-4">
-            <CompanySpotlight />
-          </div>
-        </div>
+        {/* 6. Success Stories / Testimonials */}
+        <Testimonials />
 
-        {/* Middle Grid: Main Content + Sidebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* 7. Department-wise Placement Chart */}
+        <PlacementChart />
 
-          {/* Left Column (Main Content) - 8 cols */}
-          <div className="lg:col-span-8 space-y-8">
-            {/* 3. Tip of the Day */}
-            <DailyTip />
+        {/* 8. Features Section */}
+        <Features />
 
-            {/* 7. Quick Resources */}
-            <QuickResources />
+        {/* 9. Announcement / Notice Board */}
+        <NoticeBoard />
 
-            {/* 4. Upcoming Drives (If viewed on mobile, might want to stack differently, but here keeping simple) */}
-            <div className="block lg:hidden">
-              <UpcomingDrives />
-            </div>
+        {/* 10. FAQ Section */}
+        <FAQSection />
 
-            {/* 9. FAQ Section */}
-            <FAQSection />
-          </div>
+        {/* 11. Contact Placement Cell */}
+        <ContactSection />
+      </main>
 
-          {/* Right Column (Sidebar Widgets) - 4 cols */}
-          <div className="lg:col-span-4 space-y-6">
-            {/* 4. Upcoming Drives (Desktop) */}
-            <div className="hidden lg:block">
-              <UpcomingDrives />
-            </div>
-
-            {/* 6. Poll Widget */}
-            <PollWidget />
-
-            {/* CTA to Dashboard */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 text-white text-center shadow-lg">
-              <h3 className="font-bold text-xl mb-2">Ready to Apply?</h3>
-              <p className="opacity-90 text-sm mb-4">Check the dashboard for more live drives.</p>
-              <button
-                onClick={() => navigate(user?.role === 'coordinator' ? '/coordinator' : '/student')}
-                className="bg-white text-blue-600 px-6 py-2 rounded-full font-bold shadow hover:bg-gray-100 transition-colors w-full"
-              >
-                Go to Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 10. Contact Shortcut */}
-      <ContactFloatingButton />
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 border-t border-gray-800 mt-12">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <h2 className="text-2xl font-bold mb-4">Placement<span className="text-blue-500">Cell</span></h2>
-          <p className="text-gray-400 mb-8 max-w-md mx-auto">Empowering students to achieve their dreams through structured placement management.</p>
-          <div className="text-sm text-gray-500 border-t border-gray-800 pt-8">
-            © 2026 College Placement Cell. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      {/* 12. Footer */}
+      <Footer />
     </div>
   );
 }
