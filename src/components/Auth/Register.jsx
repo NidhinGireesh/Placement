@@ -53,16 +53,21 @@ export default function Register() {
 
     setLoading(true);
 
-    const result = await registerUser(formData.email, formData.password, formData);
+    try {
+      const result = await registerUser(formData.email, formData.password, formData);
 
-    if (result.success) {
-      alert('Registration successful! Please login.');
-      navigate('/login');
-    } else {
-      setError(result.error || 'Registration failed');
+      if (result.success) {
+        alert(result.message || 'Registration successful! Your account is pending admin approval.');
+        navigate('/login');
+      } else {
+        setError(result.error || 'Registration failed');
+      }
+    } catch (err) {
+      console.error('Registration error in UI:', err);
+      setError('An unexpected error occurred during registration. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -183,16 +188,22 @@ export default function Register() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Passout Year
+                    Passout Year / Batch
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="passoutYear"
                     value={formData.passoutYear}
                     onChange={handleChange}
-                    className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    placeholder="2024"
-                  />
+                    className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  >
+                    <option value="">Select Year</option>
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026">2026</option>
+                    <option value="2027">2027</option>
+                    <option value="2028">2028</option>
+                    <option value="2029">2029</option>
+                  </select>
                 </div>
 
                 <div>
@@ -208,7 +219,7 @@ export default function Register() {
                     <option value="">Select Branch</option>
                     <option value="CSE">CSE</option>
                     <option value="ECE">ECE</option>
-                    <option value="ME">ME</option>
+                    <option value="MECH">MECH</option>
                     <option value="IT">IT</option>
                     <option value="EEE">EEE</option>
                     <option value="RAI">RAI</option>

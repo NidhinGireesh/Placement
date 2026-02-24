@@ -167,7 +167,7 @@ export default function StudentProfile() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Passout Year</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Passout Year / Batch</label>
             <input
               type="text"
               name="year"

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getUsersByRole, addUserDoc, deleteUserDoc, updateUserStatus } from '../../services/adminService';
+import UserDetailsModal from './UserDetailsModal';
 
 export default function RecruiterManagement() {
     const [recruiters, setRecruiters] = useState([]);
@@ -7,9 +8,18 @@ export default function RecruiterManagement() {
     const [showAddForm, setShowAddForm] = useState(false);
     const [newRecruiter, setNewRecruiter] = useState({ company: '', email: '' });
 
+    // Modal state
+    const [selectedRecId, setSelectedRecId] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
     useEffect(() => {
         fetchRecruiters();
     }, []);
+
+    const openDetails = (id) => {
+        setSelectedRecId(id);
+        setIsModalOpen(true);
+    };
 
     const fetchRecruiters = async () => {
         setLoading(true);
@@ -136,11 +146,18 @@ export default function RecruiterManagement() {
                                     recruiters.map((rec) => (
                                         <tr key={rec.id} className="hover:bg-slate-50 transition-colors">
                                             <td className="px-6 py-4 font-medium text-slate-800">
-                                                <div>{rec.company || rec.name}</div>
+                                                <button
+                                                    onClick={() => openDetails(rec.id)}
+                                                    className="font-semibold text-purple-600 hover:text-purple-800 hover:underline transition-all text-left"
+                                                >
+                                                    {rec.company || rec.name}
+                                                </button>
                                                 {rec.website && (
-                                                    <a href={rec.website} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-500 hover:underline">
-                                                        Visit Website
-                                                    </a>
+                                                    <div className="mt-1">
+                                                        <a href={rec.website} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-500 hover:underline">
+                                                            Visit Website
+                                                        </a>
+                                                    </div>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 text-slate-600">{rec.email}</td>
@@ -189,6 +206,14 @@ export default function RecruiterManagement() {
                     </div>
                 )}
             </div>
+
+            {/* User Details Modal */}
+            <UserDetailsModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                userId={selectedRecId}
+                role="recruiter"
+            />
         </div>
     );
 }

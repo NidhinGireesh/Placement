@@ -1,26 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { getUsersByRole, updateUserStatus, deleteUserDoc, addUserDoc } from '../../services/adminService';
+import { getUsersByRoles, updateUserStatus, deleteUserDoc, addUserDoc } from '../../services/adminService';
+import UserDetailsModal from './UserDetailsModal';
 
 export default function StudentManagement() {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [classFilter, setClassFilter] = useState('All');
     const [showAddForm, setShowAddForm] = useState(false);
     const [newStudent, setNewStudent] = useState({ name: '', email: '', department: '' });
+
+    // Sorting state
+    const [sortBy, setSortBy] = useState('name'); // 'name', 'department', 'passoutYear'
+    const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
+
+    // Modal state
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         fetchStudents();
     }, []);
 
+    const openDetails = (id, role) => {
+        setSelectedStudent({ id, role });
+        setIsModalOpen(true);
+    };
+
     const fetchStudents = async () => {
         setLoading(true);
-        const result = await getUsersByRole('student');
+        // Fetch both primary students and coordinators (who are also students)
+        const result = await getUsersByRoles(['student', 'coordinator']);
         if (result.success) {
             setStudents(result.data);
         } else {
             console.error('Failed to fetch students:', result.error);
         }
         setLoading(false);
+    };
+
+    const toggleSort = (field) => {
+        if (sortBy === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(field);
+            setSortOrder('asc');
+        }
     };
 
     const handleAddSubmit = async (e) => {
@@ -31,7 +56,7 @@ export default function StudentManagement() {
         const result = await addUserDoc({
             name: newStudent.name,
             email: newStudent.email,
-            department: newStudent.department, // This saves to 'users' collection
+            department: newStudent.department,
             role: 'student',
             createdAt: new Date()
         });
@@ -79,19 +104,75 @@ export default function StudentManagement() {
         }
     };
 
-    const filteredStudents = students.filter(student =>
-        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Extract unique classes for the filter
+    const availableClasses = ['All', ...new Set(students
+        .map(u => u.class)
+        .filter(c => c && c.trim() !== '')
+    )].sort();
+
+    const sortedStudents = [...students].sort((a, b) => {
+        let valA, valB;
+
+        if (sortBy === 'name') {
+            valA = a.name?.toLowerCase() || '';
+            valB = b.name?.toLowerCase() || '';
+        } else if (sortBy === 'department') {
+            valA = a.department?.toLowerCase() || '';
+            valB = b.department?.toLowerCase() || '';
+        } else if (sortBy === 'passoutYear') {
+            valA = a.passoutYear || '';
+            valB = b.passoutYear || '';
+        } else {
+            valA = a.name?.toLowerCase() || '';
+            valB = b.name?.toLowerCase() || '';
+        }
+
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    const filteredStudents = sortedStudents.filter(student => {
+        const matchesSearch =
+            student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            student.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            student.class?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesClass = classFilter === 'All' || student.class === classFilter;
+
+        return matchesSearch && matchesClass;
+    });
+
+    const getSortIndicator = (field) => {
+        if (sortBy === field) {
+            return sortOrder === 'asc' ? ' ▲' : ' ▼';
+        }
+        return '';
+    };
 
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-800">Student Management</h1>
-                    <p className="text-slate-500">Manage student accounts and approvals.</p>
+                    <p className="text-slate-500">View and manage all students and coordinators.</p>
                 </div>
-                <div className="flex gap-4 w-full md:w-auto">
+                <div className="flex flex-wrap gap - 4 w - full md:w - auto">
+                    {/* Class Filter Dropdown */}
+                    <div className="flex items - center gap - 2">
+                        <label className="text - sm font - bold text - slate - 500 uppercase tracking - wider">Class:</label>
+                        <select
+                            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium text-slate-700 bg-white"
+                            value={classFilter}
+                            onChange={(e) => setClassFilter(e.target.value)}
+                        >
+                            {availableClasses.map(cls => (
+                                <option key={cls} value={cls}>{cls}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     <input
                         type="text"
                         placeholder="Search students..."
@@ -162,45 +243,73 @@ export default function StudentManagement() {
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {loading && !showAddForm ? (
-                    <div className="p-8 text-center text-slate-500">Loading students...</div>
+                    <div className="p-8 text-center text-slate-500">Loading data...</div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold">
-                                    <th className="px-6 py-4">Name</th>
+                                    <th
+                                        className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
+                                        onClick={() => toggleSort('name')}
+                                    >
+                                        Name{getSortIndicator('name')}
+                                    </th>
                                     <th className="px-6 py-4">Email</th>
-                                    <th className="px-6 py-4">Department</th>
+                                    <th
+                                        className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
+                                        onClick={() => toggleSort('department')}
+                                    >
+                                        Department{getSortIndicator('department')}
+                                    </th>
+                                    <th
+                                        className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
+                                        onClick={() => toggleSort('passoutYear')}
+                                    >
+                                        Batch{getSortIndicator('passoutYear')}
+                                    </th>
+                                    <th className="px-6 py-4">Class</th>
+                                    <th className="px-6 py-4 text-center">Role</th>
                                     <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4">Blocked</th>
                                     <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {filteredStudents.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
-                                            No students found matching your search.
+                                        <td colSpan="8" className="px-6 py-8 text-center text-slate-500">
+                                            No students found matching your filters.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredStudents.map((student) => (
                                         <tr key={student.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4 font-medium text-slate-800">{student.name}</td>
+                                            <td className="px-6 py-4">
+                                                <button
+                                                    onClick={() => openDetails(student.id, student.role)}
+                                                    className="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-all text-left"
+                                                >
+                                                    {student.name}
+                                                </button>
+                                            </td>
                                             <td className="px-6 py-4 text-slate-600">{student.email}</td>
                                             <td className="px-6 py-4 text-slate-600">{student.department || '-'}</td>
+                                            <td className="px-6 py-4 text-slate-600">{student.passoutYear || '-'}</td>
+                                            <td className="px-6 py-4 text-slate-600 font-medium">{student.class || '-'}</td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${student.role === 'coordinator'
+                                                    ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                                                    : 'bg-slate-100 text-slate-600'
+                                                    }`}>
+                                                    {student.role}
+                                                </span>
+                                            </td>
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${student.status === 'approved' ? 'bg-green-100 text-green-800' :
                                                     student.status === 'rejected' ? 'bg-red-100 text-red-800' :
                                                         'bg-yellow-100 text-yellow-800'
                                                     }`}>
                                                     {student.status || 'pending'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${student.blocked ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
-                                                    }`}>
-                                                    {student.blocked ? 'Yes' : 'No'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
@@ -238,6 +347,14 @@ export default function StudentManagement() {
                     </div>
                 )}
             </div>
+
+            {/* User Details Modal */}
+            <UserDetailsModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                userId={selectedStudent?.id}
+                role={selectedStudent?.role}
+            />
         </div>
     );
 }

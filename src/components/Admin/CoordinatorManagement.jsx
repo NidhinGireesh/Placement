@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getUsersByRole, updateUserStatus, addUserDoc, deleteUserDoc } from '../../services/adminService';
+import UserDetailsModal from './UserDetailsModal';
 
 export default function CoordinatorManagement() {
     const [coordinators, setCoordinators] = useState([]);
@@ -8,9 +9,18 @@ export default function CoordinatorManagement() {
     const [showAddForm, setShowAddForm] = useState(false);
     const [newCoordinator, setNewCoordinator] = useState({ name: '', email: '', department: '', passoutYear: '' });
 
+    // Modal state
+    const [selectedCoordId, setSelectedCoordId] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
     useEffect(() => {
         fetchCoordinators();
     }, []);
+
+    const openDetails = (id) => {
+        setSelectedCoordId(id);
+        setIsModalOpen(true);
+    };
 
     const fetchCoordinators = async () => {
         setLoading(true);
@@ -179,7 +189,14 @@ export default function CoordinatorManagement() {
                                 ) : (
                                     coordinators.map((coord) => (
                                         <tr key={coord.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4 font-medium text-slate-800">{coord.name}</td>
+                                            <td className="px-6 py-4">
+                                                <button
+                                                    onClick={() => openDetails(coord.id)}
+                                                    className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline transition-all text-left"
+                                                >
+                                                    {coord.name}
+                                                </button>
+                                            </td>
                                             <td className="px-6 py-4 text-slate-600">{coord.email}</td>
                                             <td className="px-6 py-4 text-slate-600">{coord.department || '-'}</td>
                                             <td className="px-6 py-4 text-slate-600">{coord.class || '-'}</td>
@@ -226,6 +243,14 @@ export default function CoordinatorManagement() {
                     </div>
                 )}
             </div>
+
+            {/* User Details Modal */}
+            <UserDetailsModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                userId={selectedCoordId}
+                role="coordinator"
+            />
         </div>
     );
 }

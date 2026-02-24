@@ -5,11 +5,16 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  sendEmailVerification,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, getDoc, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseConfig';
 
+// Flag to prevent auth listener from signing out users during registration process
+let isRegistering = false;
+
 export const registerUser = async (email, password, userData) => {
+  isRegistering = true;
   try {
     // Create Firebase Auth user
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -26,6 +31,7 @@ export const registerUser = async (email, password, userData) => {
       createdAt: new Date(),
       // Add extra fields to main user doc for Admin easy access
       department: userData.branch || userData.department || '', // For student (branch) or coordinator (department)
+      passoutYear: userData.passoutYear || '', // Added for student profile sync
       class: userData.role === 'coordinator' ? `${userData.branch}-${userData.passoutYear}` : (userData.coordinatorClass || ''), // Derived class for coordinator
       company: userData.role === 'recruiter' ? userData.name : (userData.company || ''), // For recruiter, use name as company
       website: userData.website || '',
@@ -55,10 +61,15 @@ export const registerUser = async (email, password, userData) => {
       });
     }
 
-    return { uid, success: true };
+    // Sign out the user immediately after registration so they have to login after verification
+    await signOut(auth);
+
+    return { uid, success: true, message: 'Registration successful! Your account is pending admin approval. A verification link will be sent to your email once approved.' };
   } catch (error) {
     console.error('Registration error:', error);
     return { error: error.message, success: false };
+  } finally {
+    isRegistering = false;
   }
 };
 
@@ -72,12 +83,39 @@ export const loginUser = async (email, password) => {
     if (userDoc.exists()) {
       const userData = userDoc.data();
 
-      // Check approval status for restricted roles (Coordinator, Recruiter, Student, Admin)
+      // 1. Check Admin Approval status for restricted roles (Coordinator, Recruiter, Student, Admin)
       const isApproved = userData.approved === true || userData.status === 'approved' || userData.status === 'Verified';
 
       if ((userData.role === 'coordinator' || userData.role === 'recruiter' || userData.role === 'student' || userData.role === 'admin') && !isApproved) {
         await signOut(auth);
-        return { success: false, error: 'Your account is pending approval.' };
+        return { success: false, error: 'Your account is pending admin approval. You will be notified once approved.' };
+      }
+
+      // 2. Check Email Verification (skip for admins) - ONLY after approval
+      if (!userCredential.user.emailVerified && userData.role !== 'admin') {
+        // Send email verification now that we know they are approved
+        await sendEmailVerification(userCredential.user);
+        await signOut(auth);
+        return { success: false, error: 'Your account has been approved! A verification link has been sent to your email. Please verify and login again.' };
+      }
+
+      let department = userData.department || '';
+      let passoutYear = userData.passoutYear || '';
+
+      // Fallback for existing students missing metadata in 'users' collection
+      if (userData.role === 'student' && (!department || !passoutYear)) {
+        try {
+          const studentsRef = collection(db, 'students');
+          const q = query(studentsRef, where('userId', '==', uid));
+          const studentSnap = await getDocs(q);
+          if (!studentSnap.empty) {
+            const studentData = studentSnap.docs[0].data();
+            department = department || studentData.branch || '';
+            passoutYear = passoutYear || studentData.passoutYear || '';
+          }
+        } catch (err) {
+          console.error('Error fetching student fallback data:', err);
+        }
       }
 
       return {
@@ -85,8 +123,13 @@ export const loginUser = async (email, password) => {
         email: userData.email,
         role: userData.role,
         name: userData.name,
+        department,
+        passoutYear,
         success: true,
       };
+    } else {
+      await signOut(auth);
+      return { success: false, error: 'User profile not found. Please contact support.' };
     }
   } catch (error) {
     console.error('Login error:', error);
@@ -129,18 +172,59 @@ export const getCurrentUser = async (uid) => {
 
 export const setupAuthListener = (callback) => {
   return onAuthStateChanged(auth, async (firebaseUser) => {
+    // If we are in the middle of registration, ignore auth state changes
+    // to avoid signing out the new user while Firestore/Email logic is running
+    if (isRegistering) return;
+
     if (firebaseUser) {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       if (userDoc.exists()) {
+        const userData = userDoc.data();
+
+        // Enforce approval and verification even in listener for safety
+        // This ensures unapproved users are signed out if they refresh
+        const isApproved = userData.approved === true || userData.status === 'approved' || userData.status === 'Verified';
+        const isEmailVerified = firebaseUser.emailVerified;
+        const skipEmailCheck = userData.role === 'admin';
+
+        if ((!isEmailVerified && !skipEmailCheck) || ((userData.role === 'coordinator' || userData.role === 'recruiter' || userData.role === 'student' || userData.role === 'admin') && !isApproved)) {
+          // If unapproved/unverified session exists, sign them out
+          await signOut(auth);
+          callback(null);
+          return;
+        }
+
+        let department = userData.department || '';
+        let passoutYear = userData.passoutYear || '';
+
+        // Fallback for existing students missing metadata in 'users' collection
+        if (userData.role === 'student' && (!department || !passoutYear)) {
+          try {
+            const studentsRef = collection(db, 'students');
+            const q = query(studentsRef, where('userId', '==', firebaseUser.uid));
+            const studentSnap = await getDocs(q);
+            if (!studentSnap.empty) {
+              const studentData = studentSnap.docs[0].data();
+              department = department || studentData.branch || '';
+              passoutYear = passoutYear || studentData.passoutYear || '';
+            }
+          } catch (err) {
+            console.error('Error fetching student fallback data:', err);
+          }
+        }
+
         callback({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
-          role: userDoc.data()?.role,
-          name: userDoc.data()?.name,
+          role: userData.role,
+          name: userData.name,
+          department,
+          passoutYear,
         });
       } else {
-        // User authenticated but no document found (should not happen in normal flow, but handle it)
+        // User authenticated but no document found
         console.error("User authenticated but no user document found");
+        await signOut(auth);
         callback(null);
       }
     } else {

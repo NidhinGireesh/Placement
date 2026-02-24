@@ -130,6 +130,37 @@ export default function DashboardOverview({ setActiveTab }) {
                             View Reports
                         </button>
                     </div>
+                    {/* Migration & Maintenance */}
+                    <div className="mt-8 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800">System Migration</h3>
+                                <p className="text-slate-500 text-sm">Update legacy accounts to the new approval system.</p>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    if (window.confirm("This will approve ALL currently unapproved users. Are you sure?")) {
+                                        try {
+                                            const { bulkApproveExistingUsers } = await import('../../services/adminService');
+                                            const result = await bulkApproveExistingUsers();
+                                            if (result.success) {
+                                                alert(result.count ? `Successfully approved ${result.count} users!` : result.message);
+                                                window.location.reload();
+                                            } else {
+                                                alert("Error: " + result.error);
+                                            }
+                                        } catch (err) {
+                                            alert("Failed to execute migration: " + err.message);
+                                        }
+                                    }
+                                }}
+                                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors shadow-md shadow-orange-500/20"
+                            >
+                                Approve All Existing Users
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4">
                         <svg width="300" height="300" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />

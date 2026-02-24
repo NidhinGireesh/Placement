@@ -23,6 +23,7 @@ export default function Login() {
       setRole(result.role);
       navigate(`/${result.role}`);
     } else {
+      // result.error will contain the specific messages from authService.js
       setError(result.error || 'Login failed');
     }
 

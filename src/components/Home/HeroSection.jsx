@@ -56,7 +56,12 @@ export default function HeroSection({ user }) {
                         </>
                     ) : (
                         <button
-                            onClick={() => navigate(user.role === 'coordinator' ? '/coordinator' : '/student')}
+                            onClick={() => {
+                                if (user?.role === 'admin') navigate('/admin');
+                                else if (user?.role === 'recruiter') navigate('/recruiter');
+                                else if (user?.role === 'coordinator') navigate('/coordinator');
+                                else navigate('/student');
+                            }}
                             className="bg-white text-indigo-900 px-8 py-3 rounded-full font-bold text-lg shadow-lg hover:bg-blue-50 transition-all transform hover:-translate-y-1"
                         >
                             Go to Dashboard
