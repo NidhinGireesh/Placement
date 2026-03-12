@@ -1,22 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore';
-import { getStudentProfile, updateStudentProfile } from '../../services/studentService';
+import { getStudentProfile, updateStudentProfile, uploadProfilePicture } from '../../services/studentService';
+import { Camera } from 'lucide-react';
 
 export default function StudentProfile() {
   const { user, setUser } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
+    photoUrl: user?.photoUrl || '',
     dob: '',
     cgpa: '',
     skills: '',
-    resumeLink: '',
     branch: '',
-    year: ''
+    year: '',
+    gender: ''
   });
 
   useEffect(() => {
@@ -38,7 +41,9 @@ export default function StudentProfile() {
         skills: Array.isArray(profile.skills) ? profile.skills.join(', ') : (profile.skills || ''),
         resumeLink: profile.resumeUrl || '',
         branch: profile.branch || 'Not Set',
-        year: profile.passoutYear || 'Not Set'
+        year: profile.passoutYear || 'Not Set',
+        gender: profile.gender || '',
+        photoUrl: profile.photoUrl || user?.photoUrl || ''
       });
     }
     setLoading(false);
@@ -50,6 +55,27 @@ export default function StudentProfile() {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    const result = await uploadProfilePicture(user.uid, file);
+    if (result.success) {
+      setFormData(prev => ({ ...prev, photoUrl: result.photoUrl }));
+      setUser({ ...user, photoUrl: result.photoUrl }); // Update global state
+      alert('Profile picture updated successfully!');
+    } else {
+      alert('Failed to upload picture: ' + result.error);
+    }
+    setUploadingPhoto(false);
   };
 
   const handleSubmit = async (e) => {
@@ -104,6 +130,47 @@ export default function StudentProfile() {
         </button>
       </div>
 
+      {/* Profile Photo Section */}
+      <div className="flex flex-col items-center mb-8 pb-8 border-b border-gray-100">
+        <div className="relative">
+          {formData.photoUrl ? (
+            <img
+              src={formData.photoUrl}
+              alt="Profile"
+              className="w-32 h-32 rounded-full object-cover border-4 border-indigo-100 shadow-sm"
+            />
+          ) : (
+            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center border-4 border-indigo-50 shadow-sm">
+              <span className="text-4xl font-bold text-indigo-400">
+                {formData.name.charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
+
+          {isEditing && (
+            <label className="absolute bottom-0 right-0 p-2 bg-indigo-600 rounded-full text-white cursor-pointer hover:bg-indigo-700 transition-colors shadow-md group">
+              <Camera size={18} />
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                disabled={uploadingPhoto}
+              />
+              {uploadingPhoto && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                </div>
+              )}
+            </label>
+          )}
+        </div>
+        <div className="mt-4 text-center">
+          <h3 className="text-xl font-bold text-gray-800">{formData.name}</h3>
+          <p className="text-gray-500 capitalize">{user?.role === 'coordinator' ? 'Student Coordinator' : 'Student'} • {formData.branch}</p>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
           {/* Read-only or Standard Fields */}
@@ -153,6 +220,22 @@ export default function StudentProfile() {
               disabled={!isEditing}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500 transition-all"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+            <select
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              disabled={!isEditing}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500 transition-all"
+            >
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
           </div>
 
           <div>

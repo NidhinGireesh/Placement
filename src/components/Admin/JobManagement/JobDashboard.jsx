@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { postOpportunity, getAllJobs, deleteJob } from '../../../services/jobService';
+import { postOpportunity, getAllJobs, deleteJob, updateJob } from '../../../services/jobService';
 
 export default function JobDashboard({ filterType = 'All' }) {
     const [activeTab, setActiveTab] = useState('listings');
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [editingJob, setEditingJob] = useState(null);
 
     // Placeholder applications state
     const [applications, setApplications] = useState([
@@ -61,13 +62,16 @@ export default function JobDashboard({ filterType = 'All' }) {
                     {filterType === 'All' ? 'Active Listings' : `${filterType}s`}
                 </button>
                 <button
-                    onClick={() => setActiveTab('create')}
+                    onClick={() => {
+                        setEditingJob(null);
+                        setActiveTab('create');
+                    }}
                     className={`pb-4 px-2 font-semibold text-sm transition-all border-b-2 ${activeTab === 'create'
                         ? 'border-indigo-600 text-indigo-600'
                         : 'border-transparent text-slate-400 hover:text-slate-600'
                         }`}
                 >
-                    Post New Opportunity
+                    {editingJob ? 'Edit Opportunity' : 'Post New Opportunity'}
                 </button>
                 <button
                     onClick={() => setActiveTab('applications')}
@@ -89,7 +93,14 @@ export default function JobDashboard({ filterType = 'All' }) {
                             <div className="w-8 h-8 border-4 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin"></div>
                         </div>
                     ) : (
-                        <JobListings jobs={filteredJobs} onDelete={handleDelete} />
+                        <JobListings
+                            jobs={filteredJobs}
+                            onDelete={handleDelete}
+                            onEdit={(job) => {
+                                setEditingJob(job);
+                                setActiveTab('create');
+                            }}
+                        />
                     )
                 )}
 
@@ -97,9 +108,15 @@ export default function JobDashboard({ filterType = 'All' }) {
                     <CreateJobForm
                         onSuccess={() => {
                             fetchJobs();
+                            setEditingJob(null);
                             setActiveTab('listings');
                         }}
                         defaultType={filterType}
+                        initialData={editingJob}
+                        onCancel={() => {
+                            setEditingJob(null);
+                            setActiveTab('listings');
+                        }}
                     />
                 )}
 
@@ -109,7 +126,7 @@ export default function JobDashboard({ filterType = 'All' }) {
     );
 }
 
-function JobListings({ jobs, onDelete }) {
+function JobListings({ jobs, onDelete, onEdit }) {
     if (jobs.length === 0) {
         return (
             <div className="py-20 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
@@ -156,7 +173,10 @@ function JobListings({ jobs, onDelete }) {
                     </div>
 
                     <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
-                        <button className="flex-1 py-2 text-slate-700 hover:text-indigo-600 font-bold text-sm transition-colors">
+                        <button
+                            onClick={() => onEdit && onEdit(job)}
+                            className="flex-1 py-2 text-slate-700 hover:text-indigo-600 font-bold text-sm transition-colors"
+                        >
                             Edit
                         </button>
                         <button
@@ -172,7 +192,7 @@ function JobListings({ jobs, onDelete }) {
     );
 }
 
-function CreateJobForm({ onSuccess, defaultType = 'Job' }) {
+function CreateJobForm({ onSuccess, defaultType = 'Job', initialData = null, onCancel }) {
     const [formData, setFormData] = useState({
         company: '',
         role: '',
@@ -181,9 +201,19 @@ function CreateJobForm({ onSuccess, defaultType = 'Job' }) {
         cgpa: '0',
         description: '',
         applyLink: '',
+        deadline: '',
         targetBranches: ['All'],
         targetYears: ['All']
     });
+
+    useEffect(() => {
+        if (initialData) {
+            setFormData({
+                ...initialData,
+                deadline: initialData.deadline || ''
+            });
+        }
+    }, [initialData]);
 
     const [loading, setLoading] = useState(false);
 
@@ -209,21 +239,37 @@ function CreateJobForm({ onSuccess, defaultType = 'Job' }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        const result = await postOpportunity(formData);
+        let result;
+        if (initialData && initialData.id) {
+            result = await updateJob(initialData.id, formData);
+        } else {
+            result = await postOpportunity(formData);
+        }
+
         if (result.success) {
-            alert('Opportunity posted successfully!');
+            alert(initialData ? 'Opportunity updated successfully!' : 'Opportunity posted successfully!');
             onSuccess();
         } else {
-            alert('Error posting: ' + result.error);
+            alert('Error saving: ' + result.error);
         }
         setLoading(false);
     };
 
     return (
         <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden max-w-4xl">
-            <div className="p-8 bg-indigo-600 text-white">
-                <h3 className="text-2xl font-bold">Post New Opportunity</h3>
-                <p className="opacity-80">Fill in the details to broadcast this to eligible students.</p>
+            <div className="p-8 bg-indigo-600 text-white flex justify-between items-center">
+                <div>
+                    <h3 className="text-2xl font-bold">{initialData ? 'Edit Opportunity' : 'Post New Opportunity'}</h3>
+                    <p className="opacity-80">{initialData ? 'Update the details below.' : 'Fill in the details to broadcast this to eligible students.'}</p>
+                </div>
+                {initialData && (
+                    <button
+                        onClick={onCancel}
+                        className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-bold transition-colors"
+                    >
+                        Cancel Edit
+                    </button>
+                )}
             </div>
             <form onSubmit={handleSubmit} className="p-8 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -287,16 +333,27 @@ function CreateJobForm({ onSuccess, defaultType = 'Job' }) {
                     ></textarea>
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Direct Application Link</label>
-                    <input
-                        type="url"
-                        required
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all"
-                        placeholder="https://company.com/careers/job-123"
-                        value={formData.applyLink}
-                        onChange={(e) => setFormData({ ...formData, applyLink: e.target.value })}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Direct Application Link</label>
+                        <input
+                            type="url"
+                            required
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all"
+                            placeholder="https://company.com/careers/job-123"
+                            value={formData.applyLink}
+                            onChange={(e) => setFormData({ ...formData, applyLink: e.target.value })}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Application Deadline</label>
+                        <input
+                            type="date"
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all"
+                            value={formData.deadline}
+                            onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                        />
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
@@ -339,13 +396,13 @@ function CreateJobForm({ onSuccess, defaultType = 'Job' }) {
                 </div>
 
                 <div className="flex justify-end items-center gap-6 pt-10 border-t border-slate-100">
-                    <p className="text-slate-400 text-sm italic">Double check all details before posting.</p>
+                    <p className="text-slate-400 text-sm italic">Double check all details before saving.</p>
                     <button
                         type="submit"
                         disabled={loading}
                         className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-indigo-700 shadow-xl shadow-indigo-200 hover:shadow-indigo-300 transition-all disabled:opacity-50 active:scale-95"
                     >
-                        {loading ? 'Processing...' : 'Broadcast Opportunity'}
+                        {loading ? 'Processing...' : (initialData ? 'Save Changes' : 'Broadcast Opportunity')}
                     </button>
                 </div>
             </form>

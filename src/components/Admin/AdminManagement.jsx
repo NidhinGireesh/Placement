@@ -59,7 +59,7 @@ export default function AdminManagement() {
                 </h3>
 
                 {pendingAdmins.length === 0 ? (
-                    <p className="text-slate-500 italic">No pending admin requests.</p>
+                    <p className="text-slate-500 italic">No pending faculty admin requests.</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
@@ -99,7 +99,7 @@ export default function AdminManagement() {
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 opacity-80">
                 <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                    Active Admins
+                    Active Faculty Admins
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

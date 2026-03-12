@@ -13,12 +13,66 @@ import { auth, db } from '../config/firebaseConfig';
 // Flag to prevent auth listener from signing out users during registration process
 let isRegistering = false;
 
+// Fetch unique existing company names for autocomplete
+export const getExistingCompanies = async () => {
+  try {
+    const q = query(
+      collection(db, 'users'),
+      where('role', '==', 'recruiter')
+    );
+    const querySnapshot = await getDocs(q);
+    const companies = new Set();
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.company) {
+        companies.add(data.company);
+      }
+    });
+    return Array.from(companies).sort();
+  } catch (error) {
+    console.error('Error fetching companies:', error);
+    return [];
+  }
+};
+
 export const registerUser = async (email, password, userData) => {
   isRegistering = true;
   try {
     // Create Firebase Auth user
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const uid = userCredential.user.uid;
+
+    // Additional validation for coordinators: Max 4 per class (2 Male, 2 Female)
+    if (userData.role === 'coordinator') {
+      try {
+        const studentsRef = collection(db, 'students');
+        const classQ = query(
+          studentsRef,
+          where('branch', '==', userData.branch),
+          where('passoutYear', '==', userData.passoutYear),
+          where('originalRole', '==', 'coordinator')
+        );
+        const classSnap = await getDocs(classQ);
+
+        // Check total limit
+        if (classSnap.size >= 4) {
+          await userCredential.user.delete(); // Rollback auth user
+          return { success: false, error: `Registration failed: Maximum limit of 4 coordinators reached for ${userData.branch} ${userData.passoutYear}.` };
+        }
+
+        // Check gender specific limit
+        const sameGenderCount = classSnap.docs.filter(doc => doc.data().gender === userData.gender).length;
+        if ((userData.gender === 'male' || userData.gender === 'female') && sameGenderCount >= 2) {
+          await userCredential.user.delete(); // Rollback auth user
+          return { success: false, error: `Registration failed: Maximum limit of 2 ${userData.gender} coordinators reached for this class.` };
+        }
+      } catch (err) {
+        console.error('Error validating coordinator limits:', err);
+        // Continue if check fails, or handle as error? Safer to handle as error.
+        await userCredential.user.delete();
+        return { success: false, error: 'Failed to validate coordinator limits. Please try again.' };
+      }
+    }
 
     // Create user document in Firestore
     await setDoc(doc(db, 'users', uid), {
@@ -33,7 +87,8 @@ export const registerUser = async (email, password, userData) => {
       department: userData.branch || userData.department || '', // For student (branch) or coordinator (department)
       passoutYear: userData.passoutYear || '', // Added for student profile sync
       class: userData.role === 'coordinator' ? `${userData.branch}-${userData.passoutYear}` : (userData.coordinatorClass || ''), // Derived class for coordinator
-      company: userData.role === 'recruiter' ? userData.name : (userData.company || ''), // For recruiter, use name as company
+      company: userData.company || '', // Explicitly use company field instead of name
+      designation: userData.designation || '', // Add designation
       website: userData.website || '',
       industry: userData.industry || '',
       location: userData.location || '',

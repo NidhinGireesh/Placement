@@ -8,7 +8,8 @@ import {
   deleteDoc,
   setDoc,
   getDoc,
-  writeBatch
+  writeBatch,
+  addDoc
 } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 
@@ -18,9 +19,29 @@ export const getUsersByRoles = async (roles) => {
     const q = query(collection(db, 'users'), where('role', 'in', roles));
     const querySnapshot = await getDocs(q);
 
-    const users = querySnapshot.docs.map(doc => ({
+    const usersTemp = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
+    }));
+
+    // Join with student profiles for students and coordinators
+    const users = await Promise.all(usersTemp.map(async (user) => {
+      if (user.role === 'student' || user.role === 'coordinator') {
+        const studentQuery = query(collection(db, 'students'), where('userId', '==', user.id));
+        const studentSnapshot = await getDocs(studentQuery);
+
+        if (!studentSnapshot.empty) {
+          const profileData = studentSnapshot.docs[0].data();
+          return {
+            ...user,
+            // Use profile data as fallback if main user doc fields are missing
+            department: user.department || user.branch || profileData.branch || '',
+            passoutYear: user.passoutYear || profileData.passoutYear || '',
+            class: user.class || (profileData.branch && profileData.passoutYear ? `${profileData.branch}-${profileData.passoutYear}` : '')
+          };
+        }
+      }
+      return user;
     }));
 
     return { success: true, data: users };
@@ -36,13 +57,30 @@ export const getUsersByRole = async (role) => {
     const q = query(collection(db, 'users'), where('role', '==', role));
     const querySnapshot = await getDocs(q);
 
-    // If querying students, we might want to join with 'students' collection details
-    // For now, returning basic user data. In a real app, you'd fetch the profile too.
-
-    const users = querySnapshot.docs.map(doc => ({
+    const usersTemp = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+
+    // Join with student profiles if needed
+    let users = usersTemp;
+    if (role === 'student' || role === 'coordinator') {
+      users = await Promise.all(usersTemp.map(async (user) => {
+        const studentQuery = query(collection(db, 'students'), where('userId', '==', user.id));
+        const studentSnapshot = await getDocs(studentQuery);
+
+        if (!studentSnapshot.empty) {
+          const profileData = studentSnapshot.docs[0].data();
+          return {
+            ...user,
+            department: user.department || user.branch || profileData.branch || '',
+            passoutYear: user.passoutYear || profileData.passoutYear || '',
+            class: user.class || (profileData.branch && profileData.passoutYear ? `${profileData.branch}-${profileData.passoutYear}` : '')
+          };
+        }
+        return user;
+      }));
+    }
 
     return { success: true, data: users };
   } catch (error) {
@@ -100,7 +138,28 @@ export const addUserDoc = async (userData) => {
     if (!userData.email) return { success: false, error: "Email is required" };
 
     const newDocRef = doc(collection(db, 'users'));
-    const uid = newDocRef.id; // Generate an ID
+    const uid = newDocRef.id;
+
+    // Validation for coordinators: Max 4 per class (2 Male, 2 Female)
+    if (userData.role === 'coordinator') {
+      const studentsRef = collection(db, 'students');
+      const classQ = query(
+        studentsRef,
+        where('branch', '==', userData.branch || userData.department),
+        where('passoutYear', '==', userData.passoutYear),
+        where('originalRole', '==', 'coordinator')
+      );
+      const classSnap = await getDocs(classQ);
+
+      if (classSnap.size >= 4) {
+        return { success: false, error: `Maximum limit of 4 coordinators reached for this class.` };
+      }
+
+      const sameGenderCount = classSnap.docs.filter(doc => doc.data().gender === userData.gender).length;
+      if ((userData.gender === 'male' || userData.gender === 'female') && sameGenderCount >= 2) {
+        return { success: false, error: `Maximum limit of 2 ${userData.gender} coordinators reached for this class.` };
+      }
+    }
 
     await setDoc(doc(db, 'users', uid), {
       ...userData,
@@ -108,6 +167,31 @@ export const addUserDoc = async (userData) => {
       createdAt: new Date(),
       status: 'approved' // Auto-approve manual adds
     });
+
+    // If role is student OR coordinator, create student profile document
+    if (userData.role === 'student' || userData.role === 'coordinator') {
+      try {
+        await addDoc(collection(db, 'students'), {
+          userId: uid,
+          registerNumber: userData.registerNumber || '',
+          passoutYear: userData.passoutYear || '',
+          branch: userData.branch || userData.department || '',
+          gender: userData.gender || '',
+          dob: null,
+          lateralEntry: 'no',
+          cgpa: 0,
+          skills: [],
+          resumeUrl: '',
+          approvalStatus: 'Verified', // Auto-verify manual adds
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          originalRole: userData.role
+        });
+      } catch (studentErr) {
+        console.error('Error creating student profile for admin add:', studentErr);
+        // Note: We don't rollback the user doc here, but we log the error
+      }
+    }
 
     return { success: true, id: uid };
   } catch (error) {
@@ -159,8 +243,8 @@ export const getUserDetails = async (uid, role) => {
 
     const userData = { id: userDoc.id, ...userDoc.data() };
 
-    // 2. If student, fetch from students collection too
-    if (role === 'student' || userData.role === 'student') {
+    // 2. If student or coordinator, fetch from students collection too
+    if (role === 'student' || userData.role === 'student' || role === 'coordinator' || userData.role === 'coordinator') {
       const q = query(collection(db, 'students'), where('userId', '==', uid));
       const studentSnap = await getDocs(q);
       if (!studentSnap.empty) {

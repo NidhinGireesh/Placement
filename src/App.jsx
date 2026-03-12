@@ -96,7 +96,6 @@ function App() {
         <Route path="communication" element={<Communication />} />
         <Route path="training" element={<TrainingWorkshop />} />
         <Route path="post-announcement" element={<PostAnnouncement />} />
-        <Route path="schedule-interview" element={<ScheduleInterview />} />
 
         {/* Student Features for Coordinator */}
         <Route path="student-profile" element={<StudentProfile />} />

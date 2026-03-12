@@ -88,6 +88,7 @@ export default function UserDetailsModal({ isOpen, onClose, userId, role }) {
                                         <DetailItem label="Branch" value={userData.profile.branch} />
                                         <DetailItem label="Batch / Passout" value={userData.profile.passoutYear} />
                                         <DetailItem label="CGPA" value={userData.profile.cgpa} highlight />
+                                        <DetailItem label="Gender" value={userData.profile.gender} capitalize />
                                         <DetailItem label="Lateral Entry" value={userData.profile.lateralEntry} capitalize />
                                     </div>
                                     <div className="mt-6">
@@ -111,7 +112,7 @@ export default function UserDetailsModal({ isOpen, onClose, userId, role }) {
                             {/* Role Specific Details - COORDINATOR */}
                             {(role === 'coordinator' || userData.role === 'coordinator') && (
                                 <section>
-                                    <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4 border-b border-indigo-50 pb-2">Coordinator Management</h3>
+                                    <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4 border-b border-indigo-50 pb-2">Student Coordinator Management</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                                         <DetailItem label="Department" value={userData.department} />
                                         <DetailItem label="Assigned Class" value={userData.class} />

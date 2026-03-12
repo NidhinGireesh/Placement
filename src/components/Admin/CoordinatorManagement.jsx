@@ -7,7 +7,7 @@ export default function CoordinatorManagement() {
     const [loading, setLoading] = useState(true);
 
     const [showAddForm, setShowAddForm] = useState(false);
-    const [newCoordinator, setNewCoordinator] = useState({ name: '', email: '', department: '', passoutYear: '' });
+    const [newCoordinator, setNewCoordinator] = useState({ name: '', email: '', department: '', passoutYear: '', gender: '' });
 
     // Modal state
     const [selectedCoordId, setSelectedCoordId] = useState(null);
@@ -46,7 +46,8 @@ export default function CoordinatorManagement() {
             email: newCoordinator.email,
             department: newCoordinator.department,
             class: derivedClass,
-            passoutYear: newCoordinator.passoutYear, // Save passout year explicitly too if needed, but class covers the requirement
+            passoutYear: newCoordinator.passoutYear,
+            gender: newCoordinator.gender, // Include gender for validation
             role: 'coordinator',
             createdAt: new Date()
         });
@@ -54,7 +55,7 @@ export default function CoordinatorManagement() {
         if (result.success) {
             fetchCoordinators();
             setShowAddForm(false);
-            setNewCoordinator({ name: '', email: '', department: '', passoutYear: '' });
+            setNewCoordinator({ name: '', email: '', department: '', passoutYear: '', gender: '' });
         } else {
             alert('Error adding coordinator: ' + result.error);
         }
@@ -90,21 +91,21 @@ export default function CoordinatorManagement() {
         <div>
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-800">Coordinator Management</h1>
+                    <h1 className="text-3xl font-bold text-slate-800">Student Coordinator Management</h1>
                     <p className="text-slate-500">Approve or reject coordinator requests.</p>
                 </div>
                 <button
                     onClick={() => setShowAddForm(!showAddForm)}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-md transition-colors flex items-center gap-2"
                 >
-                    <span>{showAddForm ? 'Cancel' : '+ Add Coordinator'}</span>
+                    <span>{showAddForm ? 'Cancel' : '+ Add Student Coordinator'}</span>
                 </button>
             </div>
 
             {/* Add Coordinator Form */}
             {showAddForm && (
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100 mb-6 animate-fadeIn">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4">Add New Coordinator</h3>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-4">Add New Student Coordinator</h3>
                     <form onSubmit={handleAddSubmit} className="flex flex-col md:flex-row gap-4 items-end">
                         <div className="w-full md:w-1/4">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
@@ -151,6 +152,20 @@ export default function CoordinatorManagement() {
                                 value={newCoordinator.passoutYear}
                                 onChange={(e) => setNewCoordinator({ ...newCoordinator, passoutYear: e.target.value })}
                             />
+                        </div>
+                        <div className="w-full md:w-1/4">
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Gender</label>
+                            <select
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                                value={newCoordinator.gender}
+                                onChange={(e) => setNewCoordinator({ ...newCoordinator, gender: e.target.value })}
+                                required
+                            >
+                                <option value="">Select Gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
                         </div>
                         <button
                             type="submit"

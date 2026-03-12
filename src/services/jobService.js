@@ -101,3 +101,16 @@ export const updateJobStatus = async (jobId, status) => {
         return { success: false, error: error.message };
     }
 };
+
+export const updateJob = async (jobId, jobData) => {
+    try {
+        const jobRef = doc(db, JOBS_COLLECTION, jobId);
+        // Exclude the id and any potential metadata we don't want to update blindly
+        const { id, createdAt, ...updateData } = jobData;
+        await updateDoc(jobRef, updateData);
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating job:', error);
+        return { success: false, error: error.message };
+    }
+};

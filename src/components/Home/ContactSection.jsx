@@ -22,7 +22,7 @@ export default function ContactSection() {
                                 </div>
                                 <div>
                                     <p className="text-blue-200 text-sm">Placement Officer</p>
-                                    <p className="font-bold text-lg">Placement Cell Admin</p>
+                                    <p className="font-bold text-lg">Placement Cell Faculty Admin</p>
                                 </div>
                             </div>
 
