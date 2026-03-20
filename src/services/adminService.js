@@ -37,7 +37,8 @@ export const getUsersByRoles = async (roles) => {
             // Use profile data as fallback if main user doc fields are missing
             department: user.department || user.branch || profileData.branch || '',
             passoutYear: user.passoutYear || profileData.passoutYear || '',
-            class: user.class || (profileData.branch && profileData.passoutYear ? `${profileData.branch}-${profileData.passoutYear}` : '')
+            class: user.class || (profileData.branch && profileData.passoutYear ? `${profileData.branch}-${profileData.passoutYear}` : ''),
+            registerNumber: profileData.registerNumber || user.registerNumber || ''
           };
         }
       }
@@ -75,7 +76,8 @@ export const getUsersByRole = async (role) => {
             ...user,
             department: user.department || user.branch || profileData.branch || '',
             passoutYear: user.passoutYear || profileData.passoutYear || '',
-            class: user.class || (profileData.branch && profileData.passoutYear ? `${profileData.branch}-${profileData.passoutYear}` : '')
+            class: user.class || (profileData.branch && profileData.passoutYear ? `${profileData.branch}-${profileData.passoutYear}` : ''),
+            registerNumber: profileData.registerNumber || user.registerNumber || ''
           };
         }
         return user;

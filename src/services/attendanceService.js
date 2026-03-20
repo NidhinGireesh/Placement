@@ -2,7 +2,11 @@ import {
     doc,
     setDoc,
     getDoc,
-    serverTimestamp
+    serverTimestamp,
+    query,
+    collection,
+    where,
+    getDocs
 } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 
@@ -45,6 +49,21 @@ export const getAttendance = async (courseId, coordinatorClass) => {
         }
     } catch (error) {
         console.error('Error getting attendance:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+export const getAttendanceByCourse = async (courseId) => {
+    try {
+        const q = query(
+            collection(db, ATTENDANCE_COLLECTION),
+            where('courseId', '==', courseId)
+        );
+        const querySnapshot = await getDocs(q);
+        const attendanceData = querySnapshot.docs.map(doc => doc.data());
+        return { success: true, data: attendanceData };
+    } catch (error) {
+        console.error('Error getting attendance by course:', error);
         return { success: false, error: error.message };
     }
 };

@@ -66,20 +66,21 @@ export const getTargetedCourses = async (batch) => {
 
 export const getOfflineCourses = async (batch) => {
     try {
+        // Fetch all and filter client side to avoid complex composite index requirements
         const q = query(
             collection(db, COURSES_COLLECTION),
-            where('type', '==', 'offline'),
-            orderBy('createdAt', 'desc') // Need index for where + orderBy. We'll filter batch client-side
+            orderBy('createdAt', 'desc')
         );
         const querySnapshot = await getDocs(q);
 
-        const allOffline = querySnapshot.docs.map(doc => ({
+        const allCourses = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
 
-        const targeted = allOffline.filter(course =>
-            course.assignedTo === 'All' || course.assignedTo === batch
+        const targeted = allCourses.filter(course =>
+            course.type === 'offline' && 
+            (course.assignedTo === 'All' || course.assignedTo === batch)
         );
 
         return { success: true, data: targeted };

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore';
-import { getTargetedJobs } from '../../services/jobService';
+import { getTargetedJobs, applyForJob, getApplicationsForStudent } from '../../services/jobService';
 
 export default function JobBoard() {
     const { user } = useAuthStore();
     const [jobs, setJobs] = useState([]);
+    const [appliedJobs, setAppliedJobs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState(null);
@@ -26,6 +27,12 @@ export default function JobBoard() {
         } else {
             setError(result.error);
         }
+
+        const appsResult = await getApplicationsForStudent(user.uid);
+        if (appsResult.success) {
+            setAppliedJobs(appsResult.data.map(app => app.jobId));
+        }
+
         setLoading(false);
     };
 
@@ -34,11 +41,37 @@ export default function JobBoard() {
         job.role.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const handleApply = (applyLink) => {
-        if (applyLink) {
-            window.open(applyLink, '_blank', 'noopener,noreferrer');
+    const [applying, setApplying] = useState(false);
+
+    const handleApply = async (job) => {
+        if (!job) return;
+
+        if (job.minCgpa && user.cgpa && parseFloat(user.cgpa) < parseFloat(job.minCgpa)) {
+            if (!window.confirm("Your CGPA is below the minimum requirement. Are you sure you still want to apply?")) return;
+        }
+        if (job.maxBacklogs && user.backlogs && parseInt(user.backlogs) > parseInt(job.maxBacklogs)) {
+            if (!window.confirm("You have more active backlogs than allowed. Are you sure you still want to apply?")) return;
+        }
+        if (job.deadline && new Date(job.deadline) < new Date()) {
+            alert("The application deadline for this job has passed.");
+            return;
+        }
+
+        setApplying(true);
+        const result = await applyForJob(job.id, job.postedBy, user.uid, {
+            name: user.name,
+            course: user.department || user.branch || '',
+            cgpa: user.cgpa || '',
+            backlogs: user.backlogs || 0,
+        });
+        setApplying(false);
+
+        if (result.success) {
+            alert("Application submitted successfully!");
+            setAppliedJobs(prev => [...prev, job.id]);
+            closeModal();
         } else {
-            alert('No application link provided for this opportunity.');
+            alert(result.error);
         }
     };
 
@@ -133,13 +166,20 @@ export default function JobBoard() {
                                 View Details
                             </button>
                             <button
-                                onClick={() => handleApply(job.applyLink)}
-                                className="flex-1 bg-slate-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-200 transition-all active:scale-95 flex items-center justify-center gap-2 group-hover:bg-indigo-600"
+                                onClick={() => handleApply(job)}
+                                disabled={applying || appliedJobs.includes(job.id)}
+                                className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
+                                    appliedJobs.includes(job.id) 
+                                    ? 'bg-emerald-500 text-white cursor-not-allowed shadow-none'
+                                    : 'bg-slate-900 text-white hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-200 group-hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed'
+                                }`}
                             >
-                                Apply
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                </svg>
+                                {appliedJobs.includes(job.id) ? 'Applied \u2713' : 'Apply'}
+                                {!appliedJobs.includes(job.id) && (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -223,8 +263,20 @@ export default function JobBoard() {
 
                                 <div className="space-y-6">
                                     <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100/50">
-                                        <h3 className="text-sm font-bold text-indigo-900 mb-4 uppercase tracking-wider">Target Audience</h3>
+                                        <h3 className="text-sm font-bold text-indigo-900 mb-4 uppercase tracking-wider">Eligibility Criteria</h3>
                                         <div className="space-y-4">
+                                            {selectedJob.minCgpa && selectedJob.minCgpa !== '' && (
+                                                <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-indigo-100">
+                                                    <span className="text-sm font-semibold text-slate-600">Min CGPA</span>
+                                                    <span className="font-bold text-indigo-700">{selectedJob.minCgpa}</span>
+                                                </div>
+                                            )}
+                                            {selectedJob.maxBacklogs && selectedJob.maxBacklogs !== '' && (
+                                                <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-indigo-100">
+                                                    <span className="text-sm font-semibold text-slate-600">Max Backlogs</span>
+                                                    <span className="font-bold text-indigo-700">{selectedJob.maxBacklogs}</span>
+                                                </div>
+                                            )}
                                             <div>
                                                 <p className="text-xs text-indigo-400 font-semibold mb-2 uppercase">Eligible Branches</p>
                                                 <div className="flex flex-wrap gap-2">
@@ -254,13 +306,22 @@ export default function JobBoard() {
                         {/* Modal Footer */}
                         <div className="p-6 sm:p-8 bg-slate-50 border-t border-slate-100 rounded-b-3xl">
                             <button
-                                onClick={() => handleApply(selectedJob.applyLink)}
-                                className="w-full bg-gradient-to-r from-indigo-600 to-indigo-800 text-white py-4 rounded-xl font-bold text-lg hover:shadow-xl hover:shadow-indigo-200 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                                onClick={() => handleApply(selectedJob)}
+                                disabled={applying || appliedJobs.includes(selectedJob.id)}
+                                className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
+                                    appliedJobs.includes(selectedJob.id)
+                                    ? 'bg-emerald-500 text-white cursor-not-allowed shadow-none'
+                                    : 'bg-gradient-to-r from-indigo-600 to-indigo-800 text-white hover:shadow-xl hover:shadow-indigo-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed'
+                                }`}
                             >
-                                Apply For This {selectedJob.type}
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
+                                {appliedJobs.includes(selectedJob.id) 
+                                    ? 'Applied \u2713' 
+                                    : (applying ? 'Submitting Application...' : `Apply For This ${selectedJob.type}`)}
+                                {!appliedJobs.includes(selectedJob.id) && (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                )}
                             </button>
                         </div>
                     </div>

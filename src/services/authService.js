@@ -7,7 +7,7 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseConfig';
 
 // Flag to prevent auth listener from signing out users during registration process
@@ -157,8 +157,8 @@ export const loginUser = async (email, password) => {
       let department = userData.department || '';
       let passoutYear = userData.passoutYear || '';
 
-      // Fallback for existing students missing metadata in 'users' collection
-      if (userData.role === 'student' && (!department || !passoutYear)) {
+      // Fallback for existing students/coordinators missing metadata in 'users' collection
+      if ((userData.role === 'student' || userData.role === 'coordinator') && (!department || !passoutYear)) {
         try {
           const studentsRef = collection(db, 'students');
           const q = query(studentsRef, where('userId', '==', uid));
@@ -225,6 +225,16 @@ export const getCurrentUser = async (uid) => {
   }
 };
 
+export const updateUserProfile = async (uid, profileData) => {
+  try {
+    await updateDoc(doc(db, 'users', uid), profileData);
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const setupAuthListener = (callback) => {
   return onAuthStateChanged(auth, async (firebaseUser) => {
     // If we are in the middle of registration, ignore auth state changes
@@ -252,8 +262,8 @@ export const setupAuthListener = (callback) => {
         let department = userData.department || '';
         let passoutYear = userData.passoutYear || '';
 
-        // Fallback for existing students missing metadata in 'users' collection
-        if (userData.role === 'student' && (!department || !passoutYear)) {
+        // Fallback for existing students/coordinators missing metadata in 'users' collection
+        if ((userData.role === 'student' || userData.role === 'coordinator') && (!department || !passoutYear)) {
           try {
             const studentsRef = collection(db, 'students');
             const q = query(studentsRef, where('userId', '==', firebaseUser.uid));

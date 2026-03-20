@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { addCourse, getAllCourses, deleteCourse } from '../../../services/courseService';
+import { getUsersByRoles } from '../../../services/adminService';
+import { getAttendanceByCourse } from '../../../services/attendanceService';
 
 export default function CourseDashboard() {
     const [courses, setCourses] = useState([]);
@@ -7,6 +9,11 @@ export default function CourseDashboard() {
     const [error, setError] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [courseType, setCourseType] = useState('online');
+
+    const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+    const [selectedCourse, setSelectedCourse] = useState(null);
+    const [attendanceList, setAttendanceList] = useState([]);
+    const [attendanceLoading, setAttendanceLoading] = useState(false);
 
     useEffect(() => {
         fetchCourses();
@@ -21,6 +28,87 @@ export default function CourseDashboard() {
             setError(result.error);
         }
         setLoading(false);
+    };
+
+    const handleViewAttendance = async (course) => {
+        setSelectedCourse(course);
+        setShowAttendanceModal(true);
+        setAttendanceLoading(true);
+        setAttendanceList([]);
+
+        try {
+            // Fetch attendance logs for this course
+            const attendanceRes = await getAttendanceByCourse(course.id);
+            let presentSet = new Set();
+            if (attendanceRes.success && attendanceRes.data) {
+                attendanceRes.data.forEach(log => {
+                    log.presentStudentIds?.forEach(id => presentSet.add(id));
+                });
+            }
+
+            // Fetch targeted students
+            const studentsRes = await getUsersByRoles(['student']);
+            if (studentsRes.success) {
+                let students = studentsRes.data;
+                // Filter by batch if not 'All'
+                if (course.assignedTo !== 'All') {
+                    students = students.filter(s => s.passoutYear === course.assignedTo);
+                }
+
+                // Map to table data
+                const mappedList = students.map(s => ({
+                    id: s.id,
+                    name: s.name || 'Unknown',
+                    registerNumber: s.registerNumber || '-',
+                    department: s.department || '-',
+                    batch: s.passoutYear || '-',
+                    status: presentSet.has(s.id) ? 'Present' : 'Absent'
+                }));
+
+                // Sort: Present first, then alphabetical by name
+                mappedList.sort((a, b) => {
+                    if (a.status === 'Present' && b.status === 'Absent') return -1;
+                    if (a.status === 'Absent' && b.status === 'Present') return 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+                setAttendanceList(mappedList);
+            }
+        } catch (error) {
+            console.error('Error fetching attendance details:', error);
+            alert('Failed to load attendance details.');
+        } finally {
+            setAttendanceLoading(false);
+        }
+    };
+
+    const handleDownloadCSV = () => {
+        if (!attendanceList.length) return;
+
+        const headers = ['Register Number', 'Name', 'Department', 'Batch', 'Status'];
+        const csvRows = [
+            headers.join(','),
+            ...attendanceList.map(row => 
+                [   
+                    `"${row.registerNumber}"`,
+                    `"${row.name}"`, 
+                    `"${row.department}"`, 
+                    `"${row.batch}"`, 
+                    `"${row.status}"`
+                ].join(',')
+            )
+        ];
+        
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Attendance_${selectedCourse?.title?.replace(/\s+/g, '_')}_${selectedCourse?.date || 'Sheet'}.csv`;
+        link.click();
+        
+        URL.revokeObjectURL(url);
     };
 
     const handleAddCourse = async (e) => {
@@ -196,25 +284,125 @@ export default function CourseDashboard() {
                                                     <a href={course.link} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 text-sm font-semibold">
                                                         Link →
                                                     </a>
-                                                )}
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <button
-                                            onClick={() => handleDeleteCourse(course.id)}
-                                            className="text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-colors shrink-0"
-                                            title="Delete Course"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </li>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                {course.type === 'offline' && (
+                                                    <button
+                                                        onClick={() => handleViewAttendance(course)}
+                                                        className="text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium border border-indigo-100"
+                                                    >
+                                                        View Attendance
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleDeleteCourse(course.id)}
+                                                    className="text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-colors"
+                                                    title="Delete Course"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </li>
                                 ))}
                             </ul>
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Attendance Modal */}
+            {showAttendanceModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl shadow-xl flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-800">Attendance: {selectedCourse?.title}</h3>
+                                <p className="text-sm text-slate-500 mt-1">
+                                    {selectedCourse?.date} at {selectedCourse?.time} | Venue: {selectedCourse?.venue}
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setShowAttendanceModal(false)}
+                                className="text-slate-400 hover:text-slate-600 p-2 rounded-lg hover:bg-slate-200 transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1">
+                            {attendanceLoading ? (
+                                <div className="flex flex-col items-center justify-center py-12">
+                                    <div className="w-8 h-8 border-4 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                                    <p className="text-slate-500 font-medium">Fetching attendance details...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div className="text-sm font-medium text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg flex gap-4">
+                                            <span>Targeted Students: {attendanceList.length}</span>
+                                            <span className="text-green-700 font-bold">Present: {attendanceList.filter(s => s.status === 'Present').length}</span>
+                                            <span className="text-red-600 font-bold">Absent: {attendanceList.filter(s => s.status === 'Absent').length}</span>
+                                        </div>
+                                        <button 
+                                            onClick={handleDownloadCSV}
+                                            disabled={attendanceList.length === 0}
+                                            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                            </svg>
+                                            Download CSV
+                                        </button>
+                                    </div>
+
+                                    <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-bold">
+                                                    <th className="px-4 py-3">Register No</th>
+                                                    <th className="px-4 py-3">Name</th>
+                                                    <th className="px-4 py-3">Department</th>
+                                                    <th className="px-4 py-3">Batch</th>
+                                                    <th className="px-4 py-3">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {attendanceList.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan="5" className="px-4 py-8 text-center text-slate-500">
+                                                            No targeted students found for this session.
+                                                        </td>
+                                                    </tr>
+                                                ) : attendanceList.map((student) => (
+                                                    <tr key={student.id} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="px-4 py-3 text-slate-700 font-medium">{student.registerNumber}</td>
+                                                        <td className="px-4 py-3 text-slate-700">{student.name}</td>
+                                                        <td className="px-4 py-3 text-slate-500">{student.department}</td>
+                                                        <td className="px-4 py-3 text-slate-500">{student.batch}</td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                                                student.status === 'Present' 
+                                                                    ? 'bg-green-100 text-green-700 border border-green-200' 
+                                                                    : 'bg-red-50 text-red-600 border border-red-100'
+                                                            }`}>
+                                                                {student.status}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

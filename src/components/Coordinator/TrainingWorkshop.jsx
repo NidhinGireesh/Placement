@@ -27,6 +27,9 @@ const TrainingWorkshop = () => {
     useEffect(() => {
         if (user?.passoutYear && userBranch) {
             fetchData();
+        } else if (user) {
+            // Stop loading if the user object is present but missing required fields
+            setLoading(false);
         }
     }, [user]);
 
