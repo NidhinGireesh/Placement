@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logoutUser } from '../../services/authService';
+import { logoutUser, getCurrentUser, updateUserProfile } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
+import {
+  postOpportunity,
+  getJobsByRecruiter,
+  deleteJob,
+  updateJob,
+  getApplicationsForRecruiter,
+  updateApplicationStatus
+} from '../../services/jobService';
 
 export default function RecruiterDashboard() {
   const navigate = useNavigate();
@@ -22,27 +30,68 @@ export default function RecruiterDashboard() {
     title: '',
     description: '',
     eligibility: '',
+    targetBranches: [],
+    targetYears: [],
+    minCgpa: '',
+    maxBacklogs: '',
+    deadline: '',
+    packageDetails: '',
+    location: '',
   });
   const [jobPostings, setJobPostings] = useState([]);
   const [editingJobId, setEditingJobId] = useState(null);
 
-  // Applications state (placeholder data for now)
-  const [applications, setApplications] = useState([
-    {
-      id: 1,
-      name: 'John Doe',
-      course: 'B.Tech CSE',
-      status: 'Applied',
-      resumeUrl: '#',
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      course: 'MBA',
-      status: 'Applied',
-      resumeUrl: '#',
-    },
-  ]);
+  // Applications state
+  const [applications, setApplications] = useState([]);
+  const [filterJob, setFilterJob] = useState('All Jobs');
+  const [filterClass, setFilterClass] = useState('All Classes');
+
+  const uniqueJobs = ['All Jobs', ...new Set(jobPostings.map(job => job.title))];
+  const uniqueClasses = ['All Classes', ...new Set(applications.map(app => app.course).filter(Boolean))];
+
+  const jobMap = jobPostings.reduce((acc, job) => {
+    acc[job.id] = job.title;
+    return acc;
+  }, {});
+
+  const filteredApplications = applications.filter(app => {
+    const jobTitle = jobMap[app.jobId];
+    if (!jobTitle) return false; // Filter out applications for deleted jobs
+    const matchJob = filterJob === 'All Jobs' || jobTitle === filterJob;
+    const matchClass = filterClass === 'All Classes' || app.course === filterClass;
+    return matchJob && matchClass;
+  });
+
+  // Fetch data
+  useEffect(() => {
+    if (user?.uid) {
+      fetchJobs();
+      fetchApplications();
+      fetchUserProfile();
+    }
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    const result = await getCurrentUser(user.uid);
+    if (result.success) {
+      setCompanyProfile({
+        name: result.company || '',
+        location: result.location || '',
+        website: result.website || '',
+        description: result.description || '',
+      });
+    }
+  };
+
+  const fetchJobs = async () => {
+    const result = await getJobsByRecruiter(user.uid);
+    if (result.success) setJobPostings(result.data);
+  };
+
+  const fetchApplications = async () => {
+    const result = await getApplicationsForRecruiter(user.uid);
+    if (result.success) setApplications(result.data);
+  };
 
   // Selection process state
   const [interviewSchedule, setInterviewSchedule] = useState({
@@ -91,61 +140,116 @@ export default function RecruiterDashboard() {
     setCompanyProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleProfileSubmit = (e) => {
+  const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    showNotification('success', 'Company profile saved/updated successfully.');
+    const result = await updateUserProfile(user.uid, {
+        company: companyProfile.name,
+        location: companyProfile.location,
+        website: companyProfile.website,
+        description: companyProfile.description,
+    });
+    if (result.success) {
+        showNotification('success', 'Company profile saved/updated successfully.');
+    } else {
+        showNotification('error', result.error);
+    }
   };
 
   // Handlers for job postings
   const handleJobFormChange = (e) => {
     const { name, value } = e.target;
-    setJobForm((prev) => ({ ...prev, [name]: value }));
+    if (name === 'targetBranches') {
+      const branches = Array.from(e.target.selectedOptions, option => option.value);
+      setJobForm((prev) => ({ ...prev, [name]: branches }));
+    } else {
+      setJobForm((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
-  const handleJobSubmit = (e) => {
+  const handleJobSubmit = async (e) => {
     e.preventDefault();
     if (!jobForm.title || !jobForm.description) {
       showNotification('error', 'Please enter a job title and description.');
       return;
     }
 
+    const jobData = {
+      ...jobForm,
+      postedBy: user.uid,
+      company: companyProfile.name || user.name || 'Company',
+    };
+
     if (editingJobId !== null) {
-      setJobPostings((prev) =>
-        prev.map((job) => (job.id === editingJobId ? { ...job, ...jobForm } : job))
-      );
-      setEditingJobId(null);
+      const result = await updateJob(editingJobId, jobData);
+      if (result.success) {
+        showNotification('success', 'Job posting updated successfully.');
+        setEditingJobId(null);
+        fetchJobs();
+      } else {
+        showNotification('error', result.error);
+      }
     } else {
-      setJobPostings((prev) => [...prev, { id: Date.now(), ...jobForm }]);
+      const result = await postOpportunity(jobData);
+      if (result.success) {
+        showNotification('success', 'Job posted successfully.');
+        fetchJobs();
+      } else {
+        showNotification('error', result.error);
+      }
     }
 
-    setJobForm({ title: '', description: '', eligibility: '' });
-    showNotification(
-      'success',
-      editingJobId ? 'Job posting updated successfully.' : 'Job posted successfully.'
-    );
+    setJobForm({
+      title: '',
+      description: '',
+      eligibility: '',
+      targetBranches: [],
+      targetYears: [],
+      minCgpa: '',
+      maxBacklogs: '',
+      deadline: '',
+      packageDetails: '',
+      location: '',
+    });
   };
 
   const handleEditJob = (job) => {
     setJobForm({
-      title: job.title,
-      description: job.description,
+      title: job.title || '',
+      description: job.description || '',
       eligibility: job.eligibility || '',
+      targetBranches: job.targetBranches || [],
+      targetYears: job.targetYears || [],
+      minCgpa: job.minCgpa || '',
+      maxBacklogs: job.maxBacklogs || '',
+      deadline: job.deadline || '',
+      packageDetails: job.packageDetails || '',
+      location: job.location || '',
     });
     setEditingJobId(job.id);
     // Optionally switch to form view or scroll to form
   };
 
-  const handleDeleteJob = (id) => {
+  const handleDeleteJob = async (id) => {
     if (window.confirm('Are you sure you want to delete this job posting?')) {
-      setJobPostings((prev) => prev.filter((job) => job.id !== id));
+      const result = await deleteJob(id);
+      if (result.success) {
+        showNotification('success', 'Job deleted successfully.');
+        fetchJobs();
+      } else {
+        showNotification('error', result.error);
+      }
     }
   };
 
   // Handlers for applications
-  const updateApplicationStatus = (id, status) => {
-    setApplications((prev) =>
-      prev.map((app) => (app.id === id ? { ...app, status } : app))
-    );
+  const handleUpdateApplicationStatus = async (id, status) => {
+    const result = await updateApplicationStatus(id, status);
+    if (result.success) {
+      showNotification('success', `Application has been marked as ${status}.`);
+      fetchApplications();
+    } else {
+      showNotification('error', result.error);
+    }
   };
 
   // Handlers for selection process
@@ -424,34 +528,127 @@ export default function RecruiterDashboard() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Eligibility</label>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Eligibility Descriptions</label>
                           <textarea
                             name="eligibility"
                             value={jobForm.eligibility}
                             onChange={handleJobFormChange}
                             rows={2}
                             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                            placeholder="Requirements..."
+                            placeholder="General Requirements..."
                           />
                         </div>
-                        <button
-                          type="submit"
-                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium shadow transition-colors"
-                        >
-                          {editingJobId ? 'Update Job' : 'Post Job'}
-                        </button>
-                        {editingJobId && (
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Target Departments</label>
+                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                            {['All', 'CSE', 'ECE', 'EEE', 'ME', 'RAI', 'IT'].map(branch => (
+                              <label key={branch} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={jobForm.targetBranches.includes(branch)}
+                                  onChange={(e) => {
+                                    setJobForm(prev => {
+                                      const current = prev.targetBranches || [];
+                                      if (branch === 'All') {
+                                        return { ...prev, targetBranches: current.includes('All') ? [] : ['All'] };
+                                      }
+                                      const newBranches = current.includes(branch)
+                                        ? current.filter(b => b !== branch)
+                                        : [...current.filter(b => b !== 'All'), branch];
+                                      return { ...prev, targetBranches: newBranches };
+                                    });
+                                  }}
+                                  className="w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500"
+                                />
+                                <span className="text-sm font-medium text-slate-700">
+                                  {branch === 'All' ? 'All Branches' : branch}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Target Passout Years</label>
+                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                            {['All', '2024', '2025', '2026', '2027', '2028'].map(year => (
+                              <label key={year} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={(jobForm.targetYears || []).includes(year)}
+                                  onChange={(e) => {
+                                    setJobForm(prev => {
+                                      const current = prev.targetYears || [];
+                                      if (year === 'All') {
+                                        return { ...prev, targetYears: current.includes('All') ? [] : ['All'] };
+                                      }
+                                      const newYears = current.includes(year)
+                                        ? current.filter(y => y !== year)
+                                        : [...current.filter(y => y !== 'All'), year];
+                                      return { ...prev, targetYears: newYears };
+                                    });
+                                  }}
+                                  className="w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500"
+                                />
+                                <span className="text-sm font-medium text-slate-700">
+                                  {year === 'All' ? 'All Batches' : year}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">Min CGPA</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                name="minCgpa"
+                                value={jobForm.minCgpa}
+                                onChange={handleJobFormChange}
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                placeholder="e.g. 7.5"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">Max Backlogs</label>
+                              <input
+                                type="number"
+                                name="maxBacklogs"
+                                value={jobForm.maxBacklogs}
+                                onChange={handleJobFormChange}
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                placeholder="e.g. 0"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Application Deadline</label>
+                            <input
+                              type="date"
+                              name="deadline"
+                              value={jobForm.deadline}
+                              onChange={handleJobFormChange}
+                              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                          </div>
                           <button
-                            type="button"
-                            onClick={() => {
-                              setEditingJobId(null);
-                              setJobForm({ title: '', description: '', eligibility: '' });
-                            }}
-                            className="w-full bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 py-2 rounded-lg font-medium transition-colors"
+                            type="submit"
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium shadow transition-colors"
                           >
-                            Cancel Edit
+                            {editingJobId ? 'Update Job' : 'Post Job'}
                           </button>
-                        )}
+                          {editingJobId && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingJobId(null);
+                                setJobForm({ title: '', description: '', eligibility: '' });
+                              }}
+                              className="w-full bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 py-2 rounded-lg font-medium transition-colors"
+                            >
+                              Cancel Edit
+                            </button>
+                          )}
                       </form>
                     </div>
                   </div>
@@ -516,21 +713,37 @@ export default function RecruiterDashboard() {
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xl font-bold text-slate-800">Received Applications</h3>
-                  <div className="flex gap-2">
-                    <span className="text-sm text-slate-500">Filter by:</span>
-                    <select className="text-sm border-slate-300 rounded-md shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50">
-                      <option>All Jobs</option>
-                    </select>
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-slate-500">Class:</span>
+                        <select 
+                            value={filterClass} 
+                            onChange={(e) => setFilterClass(e.target.value)}
+                            className="text-sm border-slate-300 rounded-md shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50"
+                        >
+                            {uniqueClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-slate-500">Job:</span>
+                        <select 
+                            value={filterJob} 
+                            onChange={(e) => setFilterJob(e.target.value)}
+                            className="text-sm border-slate-300 rounded-md shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50"
+                        >
+                            {uniqueJobs.map(j => <option key={j} value={j}>{j}</option>)}
+                        </select>
+                    </div>
                   </div>
                 </div>
 
-                {applications.length === 0 ? (
+                {filteredApplications.length === 0 ? (
                   <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
-                    <p className="text-slate-500">No applications received yet.</p>
+                    <p className="text-slate-500">No applications match your filters.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {applications.map((app) => (
+                    {filteredApplications.map((app) => (
                       <div key={app.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
                         <div className="p-6 flex-1">
                           <div className="flex justify-between items-start mb-4">
@@ -538,14 +751,15 @@ export default function RecruiterDashboard() {
                               👨‍🎓
                             </div>
                             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${app.status === 'Shortlisted' ? 'bg-green-100 text-green-800' :
-                                app.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                  'bg-blue-100 text-blue-800'
+                              app.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                                'bg-blue-100 text-blue-800'
                               }`}>
                               {app.status}
                             </span>
                           </div>
                           <h4 className="text-lg font-bold text-slate-800 mb-1">{app.name}</h4>
-                          <p className="text-sm text-slate-500 mb-4">{app.course}</p>
+                          <p className="text-sm text-slate-700 font-medium mb-1">{jobMap[app.jobId] || 'Unknown Job'}</p>
+                          <p className="text-xs text-slate-500 mb-4">{app.course}</p>
 
                           <a href={app.resumeUrl} className="text-sm text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1 mb-4">
                             <span>📄</span> View Resume
@@ -553,13 +767,13 @@ export default function RecruiterDashboard() {
                         </div>
                         <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 grid grid-cols-2 gap-3">
                           <button
-                            onClick={() => updateApplicationStatus(app.id, 'Shortlisted')}
+                            onClick={() => handleUpdateApplicationStatus(app.id, 'Shortlisted')}
                             className="flex items-center justify-center gap-1 bg-white border border-green-200 text-green-700 hover:bg-green-50 py-2 rounded-lg text-sm font-medium transition-colors"
                           >
                             ✅ Shortlist
                           </button>
                           <button
-                            onClick={() => updateApplicationStatus(app.id, 'Rejected')}
+                            onClick={() => handleUpdateApplicationStatus(app.id, 'Rejected')}
                             className="flex items-center justify-center gap-1 bg-white border border-red-200 text-red-700 hover:bg-red-50 py-2 rounded-lg text-sm font-medium transition-colors"
                           >
                             ❌ Reject
@@ -653,8 +867,8 @@ export default function RecruiterDashboard() {
                           <button
                             onClick={() => toggleSelectedCandidate(cand.id)}
                             className={`text-sm font-medium px-3 py-1 rounded-md transition-colors ${cand.selected
-                                ? 'bg-white text-red-600 border border-red-100 hover:bg-red-50'
-                                : 'bg-green-600 text-white hover:bg-green-700'
+                              ? 'bg-white text-red-600 border border-red-100 hover:bg-red-50'
+                              : 'bg-green-600 text-white hover:bg-green-700'
                               }`}
                           >
                             {cand.selected ? 'Remove' : 'Select'}

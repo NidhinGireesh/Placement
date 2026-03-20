@@ -22,15 +22,14 @@ const CoordinatorSidebar = ({ onLogout }) => {
         <aside className="w-full h-full flex flex-col bg-white overflow-hidden">
             <div className="p-6 border-b border-gray-100">
                 <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-500">
-                    Coordinator
+                    Student Coordinator
                 </h2>
                 <p className="text-xs text-gray-400 mt-1">Management Console</p>
             </div>
 
             <nav className="flex-1 py-6 space-y-1">
-                <SidebarItem to="/coordinator" icon="📊" label="Overview" />
+                <SidebarItem to="/coordinator" icon="📊" label="Dashboard" />
                 <SidebarItem to="/coordinator/verification" icon="✅" label="Verification" />
-                <SidebarItem to="/coordinator/schedule-interview" icon="🗓️" label="Schedule Interview" />
                 <SidebarItem to="/coordinator/communication" icon="📢" label="Communication" />
                 <SidebarItem to="/coordinator/training" icon="🎓" label="Manage Training" />
 

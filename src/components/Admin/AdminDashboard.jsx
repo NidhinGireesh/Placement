@@ -31,16 +31,16 @@ export default function AdminDashboard() {
   };
 
   const navItems = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
+    { id: 'overview', label: 'Dashboard', icon: '📊' },
     { id: 'students', label: 'Students', icon: '👨‍🎓' },
     { id: 'recruiters', label: 'Recruiters', icon: '🏢' },
-    { id: 'coordinators', label: 'Coordinators', icon: '👔' },
+    { id: 'coordinators', label: 'Student Coordinators', icon: '👔' },
     { id: 'jobs', label: 'Jobs & Placements', icon: '💼' },
     { id: 'courses', label: 'Training & Courses', icon: '📚' },
 
 
     { id: 'reports', label: 'Reports', icon: '📑' },
-    { id: 'admins', label: 'Admins', icon: '🛡️' }, // Admin Management Tab
+    { id: 'admins', label: 'Faculty Admins', icon: '🛡️' }, // Admin Management Tab
   ];
 
   return (
@@ -55,7 +55,7 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between h-16 px-4 bg-slate-900 border-b border-slate-800">
           {isSidebarOpen ? (
             <h1 className="text-xl font-bold tracking-wider bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              ADMIN PRO
+              FACULTY ADMIN
             </h1>
           ) : (
             <span className="text-xl font-bold mx-auto">AP</span>

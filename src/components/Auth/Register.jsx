@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { registerUser } from '../../services/authService';
+import { registerUser, getExistingCompanies } from '../../services/authService';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -14,19 +14,31 @@ export default function Register() {
     registerNumber: '',
     passoutYear: '',
     branch: '',
+    gender: '', // New field
     lateralEntry: 'no', // Default to 'no'
     // Coordinator specific
     coordinatorClass: '', // "class" is a reserved keyword
     // Recruiter specific
     company: '',
+    designation: '',
     website: '',
     industry: '',
     location: '',
+    // Admin specific
+    department: '',
   });
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [existingCompanies, setExistingCompanies] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (formData.role === 'recruiter') {
+      getExistingCompanies().then(companies => setExistingCompanies(companies));
+    }
+  }, [formData.role]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -34,6 +46,17 @@ export default function Register() {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleCompanyChange = (e) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, company: value }));
+    setShowSuggestions(true);
+  };
+
+  const handleSuggestionClick = (companyName) => {
+    setFormData(prev => ({ ...prev, company: companyName }));
+    setShowSuggestions(false);
   };
 
   const handleRegister = async (e) => {
@@ -57,7 +80,7 @@ export default function Register() {
       const result = await registerUser(formData.email, formData.password, formData);
 
       if (result.success) {
-        alert(result.message || 'Registration successful! Your account is pending admin approval.');
+        alert(result.message || 'Registration successful! Your account is pending faculty admin approval.');
         navigate('/login');
       } else {
         setError(result.error || 'Registration failed');
@@ -104,7 +127,7 @@ export default function Register() {
               I am a...
             </label>
             <div className="grid grid-cols-4 gap-2">
-              {['student', 'coordinator', 'recruiter', 'admin'].map((role) => (
+              {['student', 'coordinator', 'admin', 'recruiter'].map((role) => (
                 <button
                   key={role}
                   type="button"
@@ -114,7 +137,7 @@ export default function Register() {
                     : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                     }`}
                 >
-                  {role}
+                  {role === 'coordinator' ? 'Student Coordinator' : role === 'admin' ? 'Faculty Admin' : role}
                 </button>
               ))}
             </div>
@@ -123,7 +146,7 @@ export default function Register() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                {formData.role === 'recruiter' ? 'Company Name' : 'Full Name'}
+                Full Name
               </label>
               <input
                 type="text"
@@ -131,7 +154,7 @@ export default function Register() {
                 value={formData.name}
                 onChange={handleChange}
                 className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                placeholder={formData.role === 'recruiter' ? 'Tech Solutions Inc.' : 'John Doe'}
+                placeholder="John Doe"
                 required
               />
             </div>
@@ -256,14 +279,81 @@ export default function Register() {
                   </div>
                 </div>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Gender
+                </label>
+                <div className="flex gap-4">
+                  {['male', 'female', 'other'].map((g) => (
+                    <label key={g} className="flex items-center gap-2 cursor-pointer text-slate-700">
+                      <input
+                        type="radio"
+                        name="gender"
+                        value={g}
+                        checked={formData.gender === g}
+                        onChange={handleChange}
+                        className="accent-indigo-500"
+                        required={formData.role === 'student' || formData.role === 'coordinator'}
+                      />
+                      <span className="capitalize">{g}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
           {/* Recruiter Specific Fields */}
           {formData.role === 'recruiter' && (
             <div className="p-5 rounded-xl bg-slate-100 border border-slate-200 space-y-4">
-              <h4 className="text-indigo-400 text-sm font-bold uppercase tracking-wider mb-2">Company Details</h4>
+              <h4 className="text-indigo-400 text-sm font-bold uppercase tracking-wider mb-2">Company & Professional Details</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2 relative">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    name="company"
+                    value={formData.company}
+                    onChange={handleCompanyChange}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    placeholder="e.g. Tech Solutions Inc."
+                    required
+                  />
+                  {showSuggestions && formData.company && existingCompanies.filter(c => c.toLowerCase().includes(formData.company.toLowerCase()) && c !== formData.company).length > 0 && (
+                    <ul className="absolute z-10 w-full bg-white border border-slate-200 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
+                      {existingCompanies
+                        .filter(c => c.toLowerCase().includes(formData.company.toLowerCase()) && c !== formData.company)
+                        .map((c, i) => (
+                          <li
+                            key={i}
+                            className="p-3 hover:bg-indigo-50 cursor-pointer text-slate-700"
+                            onClick={() => handleSuggestionClick(c)}
+                          >
+                            {c}
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Designation
+                  </label>
+                  <input
+                    type="text"
+                    name="designation"
+                    value={formData.designation}
+                    onChange={handleChange}
+                    className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    placeholder="e.g. HR Manager"
+                    required
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Website
@@ -307,6 +397,50 @@ export default function Register() {
                     onChange={handleChange}
                     className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                     placeholder="e.g. Bangalore"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Admin Specific Fields */}
+          {formData.role === 'admin' && (
+            <div className="p-5 rounded-xl bg-slate-100 border border-slate-200 space-y-4">
+              <h4 className="text-indigo-400 text-sm font-bold uppercase tracking-wider mb-2">Faculty Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Department
+                  </label>
+                  <select
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    required
+                  >
+                    <option value="">Select Department</option>
+                    <option value="CSE">CSE</option>
+                    <option value="ECE">ECE</option>
+                    <option value="MECH">MECH</option>
+                    <option value="IT">IT</option>
+                    <option value="EEE">EEE</option>
+                    <option value="RAI">RAI</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Designation
+                  </label>
+                  <input
+                    type="text"
+                    name="designation"
+                    value={formData.designation}
+                    onChange={handleChange}
+                    className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    placeholder="e.g. Assistant Professor"
+                    required
                   />
                 </div>
               </div>

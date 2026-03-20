@@ -209,14 +209,14 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        <nav className="flex-1 py-4 overflow-y-auto">
-          <SidebarItem id="overview" icon="📊" label="Overview" />
+        <div className="py-6 space-y-1">
+          <SidebarItem id="overview" icon="📊" label="Dashboard" />
           <SidebarItem id="profile" icon="👨‍🎓" label="My Profile" />
           <SidebarItem id="jobs" icon="💼" label="Job Board" />
           <SidebarItem id="applications" icon="📝" label="Applications" />
           <SidebarItem id="interviews" icon="🤝" label="Interviews" />
           <SidebarItem id="training" icon="📚" label="Courses & Training" />
-        </nav>
+        </div>
 
         <div className="p-4 border-t border-gray-100">
           <button

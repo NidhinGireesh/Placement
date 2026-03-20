@@ -1,5 +1,6 @@
-import { db } from '../config/firebaseConfig';
+import { db, storage } from '../config/firebaseConfig';
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 // Get Student Profile by User ID
 export const getStudentProfile = async (userId) => {
@@ -22,6 +23,55 @@ export const getStudentProfile = async (userId) => {
     }
 };
 
+// Upload Profile Picture
+export const uploadProfilePicture = async (userId, file) => {
+    try {
+        const fileExtension = file.name.split('.').pop();
+        const storageRef = ref(storage, `profile_pictures/${userId}_${Date.now()}.${fileExtension}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        return new Promise((resolve, reject) => {
+            uploadTask.on(
+                'state_changed',
+                (snapshot) => {
+                    // Optional: You could track progress here
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log('Upload is ' + progress + '% done');
+                },
+                (error) => {
+                    console.error('Upload failed:', error);
+                    resolve({ success: false, error: error.message });
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+                    // Update both users and students collections with the photo photoUrl
+                    try {
+                        // Update users
+                        const userRef = doc(db, 'users', userId);
+                        await updateDoc(userRef, { photoUrl: downloadURL });
+
+                        // Update students (need to find the doc id first)
+                        const q = query(collection(db, 'students'), where('userId', '==', userId));
+                        const querySnapshot = await getDocs(q);
+                        if (!querySnapshot.empty) {
+                            const studentRef = doc(db, 'students', querySnapshot.docs[0].id);
+                            await updateDoc(studentRef, { photoUrl: downloadURL });
+                        }
+
+                        resolve({ success: true, photoUrl: downloadURL });
+                    } catch (dbError) {
+                        resolve({ success: false, error: dbError.message });
+                    }
+                }
+            );
+        });
+    } catch (error) {
+        console.error('Error uploading profile picture:', error);
+        return { success: false, error: error.message };
+    }
+};
+
 // Update Student Profile
 export const updateStudentProfile = async (userId, profileData) => {
     try {
@@ -37,6 +87,7 @@ export const updateStudentProfile = async (userId, profileData) => {
             const studentUpdates = {
                 phone: profileData.phone,
                 dob: profileData.dob,
+                gender: profileData.gender,
                 cgpa: profileData.cgpa,
                 skills: Array.isArray(profileData.skills) ? profileData.skills : profileData.skills.split(',').map(s => s.trim()),
                 resumeUrl: profileData.resumeLink,

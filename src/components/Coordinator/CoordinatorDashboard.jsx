@@ -55,7 +55,7 @@ export default function CoordinatorDashboard() {
         <header className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">
-              Hello, <span className="text-teal-600">{user?.name || 'Coordinator'}</span>
+              Hello, <span className="text-teal-600">{user?.name || 'Student Coordinator'}</span>
             </h1>
             <p className="text-gray-500 mt-1">Manage all placement activities from one place.</p>
           </div>

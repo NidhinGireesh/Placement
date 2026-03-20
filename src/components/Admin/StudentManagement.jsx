@@ -8,7 +8,7 @@ export default function StudentManagement() {
     const [searchTerm, setSearchTerm] = useState('');
     const [classFilter, setClassFilter] = useState('All');
     const [showAddForm, setShowAddForm] = useState(false);
-    const [newStudent, setNewStudent] = useState({ name: '', email: '', department: '' });
+    const [newStudent, setNewStudent] = useState({ name: '', email: '', department: '', gender: '' });
 
     // Sorting state
     const [sortBy, setSortBy] = useState('name'); // 'name', 'department', 'passoutYear'
@@ -57,6 +57,7 @@ export default function StudentManagement() {
             name: newStudent.name,
             email: newStudent.email,
             department: newStudent.department,
+            gender: newStudent.gender,
             role: 'student',
             createdAt: new Date()
         });
@@ -64,7 +65,7 @@ export default function StudentManagement() {
         if (result.success) {
             fetchStudents();
             setShowAddForm(false);
-            setNewStudent({ name: '', email: '', department: '' });
+            setNewStudent({ name: '', email: '', department: '', gender: '' });
         } else {
             alert('Error adding student: ' + result.error);
         }
@@ -158,10 +159,10 @@ export default function StudentManagement() {
                     <h1 className="text-3xl font-bold text-slate-800">Student Management</h1>
                     <p className="text-slate-500">View and manage all students and coordinators.</p>
                 </div>
-                <div className="flex flex-wrap gap - 4 w - full md:w - auto">
+                <div className="flex flex-wrap gap-4 w-full md:w-auto">
                     {/* Class Filter Dropdown */}
-                    <div className="flex items - center gap - 2">
-                        <label className="text - sm font - bold text - slate - 500 uppercase tracking - wider">Class:</label>
+                    <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Class:</label>
                         <select
                             className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium text-slate-700 bg-white"
                             value={classFilter}
@@ -228,6 +229,20 @@ export default function StudentManagement() {
                                 <option value="ECE">ECE</option>
                                 <option value="MECH">MECH</option>
                                 <option value="CIVIL">CIVIL</option>
+                            </select>
+                        </div>
+                        <div className="w-full md:w-1/4">
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Gender</label>
+                            <select
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                value={newStudent.gender}
+                                onChange={(e) => setNewStudent({ ...newStudent, gender: e.target.value })}
+                                required
+                            >
+                                <option value="">Select Gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
                             </select>
                         </div>
                         <button
