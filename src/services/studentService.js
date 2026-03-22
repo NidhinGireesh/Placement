@@ -72,6 +72,50 @@ export const uploadProfilePicture = async (userId, file) => {
     }
 };
 
+// Upload Resume
+export const uploadResume = async (userId, file) => {
+    try {
+        const fileExtension = file.name.split('.').pop();
+        const storageRef = ref(storage, `resumes/${userId}_${Date.now()}.${fileExtension}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        return new Promise((resolve, reject) => {
+            uploadTask.on(
+                'state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log('Resume upload is ' + progress + '% done');
+                },
+                (error) => {
+                    console.error('Resume upload failed:', error);
+                    resolve({ success: false, error: error.message });
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+                    try {
+                        // Update students collection with the resumeUrl
+                        const q = query(collection(db, 'students'), where('userId', '==', userId));
+                        const querySnapshot = await getDocs(q);
+                        if (!querySnapshot.empty) {
+                            const studentRef = doc(db, 'students', querySnapshot.docs[0].id);
+                            await updateDoc(studentRef, { resumeUrl: downloadURL });
+                            resolve({ success: true, resumeUrl: downloadURL });
+                        } else {
+                            resolve({ success: false, error: 'Student profile not found to update resume' });
+                        }
+                    } catch (dbError) {
+                        resolve({ success: false, error: dbError.message });
+                    }
+                }
+            );
+        });
+    } catch (error) {
+        console.error('Error uploading resume:', error);
+        return { success: false, error: error.message };
+    }
+};
+
 // Update Student Profile
 export const updateStudentProfile = async (userId, profileData) => {
     try {
@@ -89,9 +133,9 @@ export const updateStudentProfile = async (userId, profileData) => {
                 dob: profileData.dob,
                 gender: profileData.gender,
                 cgpa: profileData.cgpa,
+                backlogs: profileData.backlogs !== undefined && profileData.backlogs !== '' ? parseInt(profileData.backlogs, 10) : 0,
                 skills: Array.isArray(profileData.skills) ? profileData.skills : profileData.skills.split(',').map(s => s.trim()),
                 resumeUrl: profileData.resumeLink,
-                // Add any other fields that are editable
             };
 
             await updateDoc(studentRef, studentUpdates);

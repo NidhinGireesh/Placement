@@ -267,3 +267,46 @@ export const getUserDetails = async (uid, role) => {
     return { success: false, error: error.message };
   }
 };
+
+// Add a new notification
+export const addNotification = async (notificationData) => {
+  try {
+    const newDocRef = doc(collection(db, 'notifications'));
+    await setDoc(newDocRef, {
+      ...notificationData,
+      id: newDocRef.id,
+      createdAt: new Date().toISOString()
+    });
+    return { success: true, id: newDocRef.id };
+  } catch (error) {
+    console.error('Error adding notification:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get notifications sent by admin
+export const getAdminNotifications = async () => {
+  try {
+    const q = query(collection(db, 'notifications'), where('sender', '==', 'admin'));
+    const snapshot = await getDocs(q);
+    const notifications = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    return { success: true, data: notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) };
+  } catch (error) {
+    console.error('Error fetching admin notifications:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Delete a notification
+export const deleteNotification = async (notificationId) => {
+  try {
+    await deleteDoc(doc(db, 'notifications', notificationId));
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting notification:', error);
+    return { success: false, error: error.message };
+  }
+};

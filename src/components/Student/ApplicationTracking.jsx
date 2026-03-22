@@ -21,6 +21,8 @@ export default function ApplicationTracking() {
         fetchApps();
     }, [user]);
 
+
+
     const handleRevoke = async (applicationId) => {
         if (!window.confirm("Are you sure you want to withdraw this application? This action cannot be undone.")) return;
 
@@ -147,7 +149,24 @@ export default function ApplicationTracking() {
                                 <p className="text-sm text-gray-500 font-semibold mb-2">Current Status</p>
                                 {getStatusBadge(selectedApp.status)}
                                 {selectedApp.status === 'Shortlisted' && (
-                                    <p className="text-sm text-green-600 mt-3 font-medium bg-green-50 p-3 rounded-xl border border-green-100">Congratulations! You have been shortlisted. The recruitment team will reach out to you with next steps.</p>
+                                    <div className="mt-4">
+                                        <p className="text-sm text-green-600 mt-3 font-medium bg-green-50 p-3 rounded-xl border border-green-100 mb-4">Congratulations! You have been shortlisted. The recruitment team will reach out to you with next steps.</p>
+                                    </div>
+                                )}
+                                {selectedApp.status === 'Interview Scheduled' && (
+                                    <div className="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+                                        <p className="text-sm text-indigo-800 font-bold mb-2">📅 Interview Scheduled!</p>
+                                        <div className="space-y-1 text-sm text-slate-700">
+                                            {selectedApp.interviewDate && <p><span className="font-semibold text-slate-600">Date:</span> {selectedApp.interviewDate}</p>}
+                                            {selectedApp.interviewTime && <p><span className="font-semibold text-slate-600">Time:</span> {selectedApp.interviewTime}</p>}
+                                        </div>
+                                        {selectedApp.interviewMessage && (
+                                            <div className="mt-3 p-3 bg-white rounded-lg border border-indigo-50">
+                                                <p className="text-xs font-bold text-indigo-900 mb-1">Message from Recruiter:</p>
+                                                <p className="text-sm text-slate-600 leading-relaxed">{selectedApp.interviewMessage}</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                                 {selectedApp.status === 'Rejected' && (
                                     <p className="text-sm text-red-500 mt-3 font-medium bg-red-50 p-3 rounded-xl border border-red-100">Unfortunately, the company has decided to move forward with other candidates.</p>
@@ -167,6 +186,8 @@ export default function ApplicationTracking() {
                     </div>
                 </div>
             )}
+
+
         </div>
     );
 }

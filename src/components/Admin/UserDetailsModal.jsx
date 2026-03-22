@@ -45,9 +45,18 @@ export default function UserDetailsModal({ isOpen, onClose, userId, role }) {
                         ✕
                     </button>
                     <div className="flex items-center gap-6">
-                        <div className="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center text-4xl border border-white/10">
-                            {role === 'recruiter' ? '🏢' : (userData?.role === 'coordinator' ? '👔' : '👨‍🎓')}
-                        </div>
+                        {/* User photo (students/coordinators) or emoji fallback */}
+                        {(userData?.profile?.photoUrl || userData?.photoUrl) ? (
+                            <img
+                                src={userData.profile?.photoUrl || userData.photoUrl}
+                                alt={userData?.name || 'User'}
+                                className="w-20 h-20 rounded-2xl object-cover border-2 border-white/20 shadow-lg"
+                            />
+                        ) : (
+                            <div className="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center text-4xl border border-white/10">
+                                {role === 'recruiter' ? '🏢' : (userData?.role === 'coordinator' ? '👔' : '👨‍🎓')}
+                            </div>
+                        )}
                         <div>
                             <h2 className="text-3xl font-bold tracking-tight">{userData?.name || userData?.company || 'User Details'}</h2>
                             <p className="text-slate-400 font-medium capitalize mt-1 tracking-wide">{userData?.role || role}</p>
@@ -88,6 +97,7 @@ export default function UserDetailsModal({ isOpen, onClose, userId, role }) {
                                         <DetailItem label="Branch" value={userData.profile.branch} />
                                         <DetailItem label="Batch / Passout" value={userData.profile.passoutYear} />
                                         <DetailItem label="CGPA" value={userData.profile.cgpa} highlight />
+                                        <DetailItem label="Active Backlogs" value={userData.profile.backlogs !== undefined ? String(userData.profile.backlogs) : undefined} />
                                         <DetailItem label="Gender" value={userData.profile.gender} capitalize />
                                         <DetailItem label="Lateral Entry" value={userData.profile.lateralEntry} capitalize />
                                     </div>

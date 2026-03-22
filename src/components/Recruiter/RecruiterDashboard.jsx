@@ -45,6 +45,7 @@ export default function RecruiterDashboard() {
   const [applications, setApplications] = useState([]);
   const [filterJob, setFilterJob] = useState('All Jobs');
   const [filterClass, setFilterClass] = useState('All Classes');
+  const [selectedApplication, setSelectedApplication] = useState(null);
 
   const uniqueJobs = ['All Jobs', ...new Set(jobPostings.map(job => job.title))];
   const uniqueClasses = ['All Classes', ...new Set(applications.map(app => app.course).filter(Boolean))];
@@ -98,11 +99,10 @@ export default function RecruiterDashboard() {
     candidate: '',
     date: '',
     time: '',
+    message: '',
   });
-  const [selectionList, setSelectionList] = useState([
-    { id: 1, name: 'John Doe', selected: false },
-    { id: 2, name: 'Jane Smith', selected: false },
-  ]);
+  const [selectionList, setSelectionList] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isPublished, setIsPublished] = useState(false);
 
   // Notification / toast state
@@ -118,6 +118,17 @@ export default function RecruiterDashboard() {
     const timeout = setTimeout(() => setNotification(null), 3000);
     return () => clearTimeout(timeout);
   }, [notification]);
+
+  // Sync Selection List with Shortlisted Candidates
+  useEffect(() => {
+    const shortlisted = applications.filter(app => app.status === 'Shortlisted');
+    setSelectionList(shortlisted.map(app => ({
+      id: app.id,
+      name: app.name,
+      selected: false,
+      ...app
+    })));
+  }, [applications]);
 
   // Derived metrics for dashboard stats
   const activeJobsCount = jobPostings.length;
@@ -258,10 +269,37 @@ export default function RecruiterDashboard() {
     setInterviewSchedule((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleInterviewSubmit = (e) => {
+  const handleInterviewSubmit = async (e) => {
     e.preventDefault();
-    showNotification('success', 'Interview scheduled successfully.');
-    setInterviewSchedule({ candidate: '', date: '', time: '' });
+    const selectedCandidates = selectionList.filter(cand => cand.selected);
+    
+    if (selectedCandidates.length === 0) {
+      showNotification('error', 'Please select candidates from the list to schedule.');
+      return;
+    }
+
+    if (!interviewSchedule.date || !interviewSchedule.time) {
+      showNotification('error', 'Please fill in both Date and Time.');
+      return;
+    }
+
+    let successCount = 0;
+    for (const cand of selectedCandidates) {
+      const result = await updateApplicationStatus(cand.id, 'Interview Scheduled', {
+        interviewDate: interviewSchedule.date,
+        interviewTime: interviewSchedule.time,
+        interviewMessage: interviewSchedule.message || ''
+      });
+      if (result.success) successCount++;
+    }
+
+    if (successCount > 0) {
+      showNotification('success', `Scheduled interview for ${successCount} candidates.`);
+      fetchApplications();
+      setInterviewSchedule({ candidate: '', date: '', time: '', message: '' });
+    } else {
+      showNotification('error', 'Failed to schedule interviews.');
+    }
   };
 
   const toggleSelectedCandidate = (id) => {
@@ -747,9 +785,18 @@ export default function RecruiterDashboard() {
                       <div key={app.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
                         <div className="p-6 flex-1">
                           <div className="flex justify-between items-start mb-4">
-                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-xl">
-                              👨‍🎓
-                            </div>
+                            {/* Student Photo */}
+                            {app.photoUrl ? (
+                              <img
+                                src={app.photoUrl}
+                                alt={app.name}
+                                className="w-14 h-14 rounded-full object-cover border-2 border-purple-100 shadow-sm"
+                              />
+                            ) : (
+                              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center text-xl font-bold text-purple-600 border-2 border-purple-50 shadow-sm">
+                                {(app.name || '?').charAt(0).toUpperCase()}
+                              </div>
+                            )}
                             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${app.status === 'Shortlisted' ? 'bg-green-100 text-green-800' :
                               app.status === 'Rejected' ? 'bg-red-100 text-red-800' :
                                 'bg-blue-100 text-blue-800'
@@ -759,25 +806,47 @@ export default function RecruiterDashboard() {
                           </div>
                           <h4 className="text-lg font-bold text-slate-800 mb-1">{app.name}</h4>
                           <p className="text-sm text-slate-700 font-medium mb-1">{jobMap[app.jobId] || 'Unknown Job'}</p>
-                          <p className="text-xs text-slate-500 mb-4">{app.course}</p>
+                          <p className="text-xs text-slate-500 mb-1">{app.course}</p>
+                          {app.cgpa && <p className="text-xs text-slate-500 mb-3">CGPA: <span className="font-semibold text-slate-700">{app.cgpa}</span></p>}
 
-                          <a href={app.resumeUrl} className="text-sm text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1 mb-4">
-                            <span>📄</span> View Resume
-                          </a>
+                          {/* Resume Link */}
+                          {app.resumeUrl ? (
+                            <a
+                              href={app.resumeUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1 mb-2 hover:underline"
+                            >
+                              <span>📄</span> View Resume
+                            </a>
+                          ) : (
+                            <p className="text-xs text-slate-400 mb-2 italic">No resume uploaded</p>
+                          )}
+                          <button 
+                            onClick={() => setSelectedApplication(app)}
+                            className="mt-3 w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg text-sm transition-colors"
+                          >
+                            👤 View Full Profile
+                          </button>
                         </div>
-                        <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 grid grid-cols-2 gap-3">
-                          <button
-                            onClick={() => handleUpdateApplicationStatus(app.id, 'Shortlisted')}
-                            className="flex items-center justify-center gap-1 bg-white border border-green-200 text-green-700 hover:bg-green-50 py-2 rounded-lg text-sm font-medium transition-colors"
-                          >
-                            ✅ Shortlist
-                          </button>
-                          <button
-                            onClick={() => handleUpdateApplicationStatus(app.id, 'Rejected')}
-                            className="flex items-center justify-center gap-1 bg-white border border-red-200 text-red-700 hover:bg-red-50 py-2 rounded-lg text-sm font-medium transition-colors"
-                          >
-                            ❌ Reject
-                          </button>
+                        <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex flex-wrap gap-2">
+                          {app.status !== 'Shortlisted' && app.status !== 'Interview Scheduled' && (
+                              <button
+                                onClick={() => handleUpdateApplicationStatus(app.id, 'Shortlisted')}
+                                className="flex items-center gap-1 bg-white border border-green-200 text-green-700 hover:bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                              >
+                                ✅ Shortlist
+                              </button>
+                          )}
+
+                          {app.status !== 'Rejected' && (
+                              <button
+                                onClick={() => handleUpdateApplicationStatus(app.id, 'Rejected')}
+                                className="flex items-center gap-1 bg-white border border-red-200 text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                              >
+                                ❌ Reject
+                              </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -785,6 +854,8 @@ export default function RecruiterDashboard() {
                 )}
               </div>
             )}
+
+
 
             {/* SELECTION PROCESS SECTION */}
             {activeTab === 'selectionProcess' && (
@@ -797,15 +868,21 @@ export default function RecruiterDashboard() {
                   <div className="p-6">
                     <form onSubmit={handleInterviewSubmit} className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Candidate Name</label>
-                        <input
-                          type="text"
-                          name="candidate"
-                          value={interviewSchedule.candidate}
-                          onChange={handleInterviewChange}
-                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                          placeholder="Enter name"
-                        />
+                        <p className="text-sm text-slate-500 font-medium bg-slate-50 p-3 rounded-lg border border-slate-200 mb-3">
+                          💡 <span className="text-slate-700">Select candidates</span> from the checklist on the right to schedule them for interview.
+                        </p>
+                        {selectionList.some(c => c.selected) && (
+                          <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100/50">
+                            <label className="block text-xs font-bold text-indigo-900 uppercase tracking-wide mb-2">Target Candidates ({selectionList.filter(c => c.selected).length})</label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {selectionList.filter(c => c.selected).map(c => (
+                                <span key={c.id} className="inline-flex items-center bg-white text-indigo-700 border border-indigo-200 px-2 py-1 rounded-lg text-xs font-medium shadow-sm">
+                                  {c.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -829,6 +906,17 @@ export default function RecruiterDashboard() {
                           />
                         </div>
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Message to Candidates</label>
+                        <textarea
+                          name="message"
+                          value={interviewSchedule.message}
+                          onChange={handleInterviewChange}
+                          rows="4"
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                          placeholder="Add instructions, location, or setup links..."
+                        ></textarea>
+                      </div>
                       <button
                         type="submit"
                         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium shadow transition-colors"
@@ -842,13 +930,22 @@ export default function RecruiterDashboard() {
                 {/* Final Selection List */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                   <div className="px-6 py-4 border-b border-slate-100 bg-green-50 flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-green-900">🏆 Final Selection</h3>
+                    <h3 className="text-lg font-bold text-green-900">👥 Shortlisted Candidates</h3>
                     {isPublished && <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">Published</span>}
                   </div>
                   <div className="p-6">
                     <p className="text-slate-500 text-sm mb-4">Select candidates to mark them as final selects for your company.</p>
+                    <div className="mb-4">
+                      <input
+                        type="text"
+                        placeholder="🔍 Search candidates..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                      />
+                    </div>
                     <div className="space-y-3 mb-6">
-                      {selectionList.map((cand) => (
+                      {selectionList.filter(cand => (cand.name || '').toLowerCase().includes(searchTerm.toLowerCase())).map((cand) => (
                         <div
                           key={cand.id}
                           className={`flex justify-between items-center p-3 rounded-lg border transition-colors ${cand.selected ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200'
@@ -891,6 +988,128 @@ export default function RecruiterDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Student Details Modal */}
+      {selectedApplication && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative animate-fade-in">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+              <h3 className="text-xl font-bold text-slate-800">Applicant Details</h3>
+              <button 
+                  onClick={() => setSelectedApplication(null)}
+                  className="text-slate-400 hover:bg-white hover:text-slate-600 p-2 rounded-full transition-colors shadow-sm bg-white"
+              >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6 flex-1">
+              {/* Profile Header */}
+              <div className="flex flex-col sm:flex-row items-start gap-6">
+                {selectedApplication.photoUrl ? (
+                  <img src={selectedApplication.photoUrl} alt="Profile" className="w-24 h-24 rounded-2xl shadow-md object-cover border-4 border-white shrink-0" />
+                ) : (
+                  <div className="w-24 h-24 rounded-2xl bg-indigo-100 text-indigo-500 flex items-center justify-center text-4xl font-bold uppercase shadow-sm shrink-0">
+                    {selectedApplication.name?.charAt(0) || '?'}
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">{selectedApplication.name}</h2>
+                  <p className="text-slate-500 font-medium">{selectedApplication.email}</p>
+                  <p className="text-slate-500">{selectedApplication.phone || 'No phone provided'}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-semibold">
+                      {selectedApplication.course}
+                    </span>
+                    {selectedApplication.cgpa && (
+                      <span className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-semibold">
+                        CGPA: {selectedApplication.cgpa}
+                      </span>
+                    )}
+                    {selectedApplication.backlogs !== undefined && (
+                      <span className="px-3 py-1 bg-red-50 text-red-700 rounded-full text-sm font-semibold">
+                        Backlogs: {selectedApplication.backlogs}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bio */}
+              {selectedApplication.bio && (
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">About</h4>
+                    <p className="text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
+                      {selectedApplication.bio}
+                    </p>
+                  </div>
+              )}
+
+              {/* Skills */}
+              {selectedApplication.skills && selectedApplication.skills.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedApplication.skills.map((skill, index) => (
+                      <span key={index} className="bg-slate-100 text-slate-700 px-3 py-1 rounded-md text-sm border border-slate-200">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Resume */}
+              <div>
+                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Resume</h4>
+                {selectedApplication.resumeUrl ? (
+                  <a 
+                    href={selectedApplication.resumeUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-medium px-4 py-3 rounded-xl transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                    </svg>
+                    View & Download Resume
+                  </a>
+                ) : (
+                  <p className="text-slate-500 italic">No resume provided.</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Modal Actions */}
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 justify-end items-center shrink-0">
+                {selectedApplication.status !== 'Shortlisted' && selectedApplication.status !== 'Interview Scheduled' && (
+                    <button
+                        onClick={() => { handleUpdateApplicationStatus(selectedApplication.id, 'Shortlisted'); setSelectedApplication(null); }}
+                        className="bg-white border border-green-200 text-green-700 hover:bg-green-50 px-4 py-2 rounded-lg font-medium transition-colors"
+                    >
+                        ✅ Shortlist
+                    </button>
+                )}
+                {selectedApplication.status !== 'Rejected' && (
+                    <button
+                        onClick={() => { handleUpdateApplicationStatus(selectedApplication.id, 'Rejected'); setSelectedApplication(null); }}
+                        className="bg-white border border-red-200 text-red-700 hover:bg-red-50 px-4 py-2 rounded-lg font-medium transition-colors"
+                    >
+                        ❌ Reject
+                    </button>
+                )}
+                <button 
+                  onClick={() => setSelectedApplication(null)}
+                  className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
