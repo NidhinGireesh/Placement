@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore';
-import { getStudentProfile, updateStudentProfile, uploadProfilePicture } from '../../services/studentService';
-import { Camera } from 'lucide-react';
+import { getStudentProfile, updateStudentProfile, uploadProfilePicture, uploadResume } from '../../services/studentService';
+import { Camera, FileText, Upload, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function StudentProfile() {
   const { user, setUser } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -16,6 +17,7 @@ export default function StudentProfile() {
     photoUrl: user?.photoUrl || '',
     dob: '',
     cgpa: '',
+    backlogs: '',
     skills: '',
     branch: '',
     year: '',
@@ -38,6 +40,7 @@ export default function StudentProfile() {
         phone: profile.phone || '',
         dob: profile.dob || '',
         cgpa: profile.cgpa || '',
+        backlogs: profile.backlogs !== undefined ? String(profile.backlogs) : '',
         skills: Array.isArray(profile.skills) ? profile.skills.join(', ') : (profile.skills || ''),
         resumeLink: profile.resumeUrl || '',
         branch: profile.branch || 'Not Set',
@@ -76,6 +79,33 @@ export default function StudentProfile() {
       alert('Failed to upload picture: ' + result.error);
     }
     setUploadingPhoto(false);
+  };
+
+  const handleResumeUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Optional: add file content type validation (PDF usually)
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Please upload a PDF or Word document.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    setUploadingResume(true);
+    const result = await uploadResume(user.uid, file);
+    if (result.success) {
+      setFormData(prev => ({ ...prev, resumeLink: result.resumeUrl }));
+      alert('Resume uploaded successfully!');
+    } else {
+      alert('Failed to upload resume: ' + result.error);
+    }
+    setUploadingResume(false);
   };
 
   const handleSubmit = async (e) => {
@@ -273,20 +303,69 @@ export default function StudentProfile() {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Active Backlogs</label>
+            <input
+              type="number"
+              min="0"
+              name="backlogs"
+              value={formData.backlogs}
+              onChange={handleChange}
+              disabled={!isEditing}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500 transition-all"
+              placeholder="0"
+            />
+          </div>
+
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Resume Link (Google Drive / LinkedIn)</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">🔗</span>
-              <input
-                type="url"
-                name="resumeLink"
-                value={formData.resumeLink}
-                onChange={handleChange}
-                disabled={!isEditing}
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500 transition-all"
-                placeholder="https://drive.google.com/..."
-              />
+            <label className="block text-sm font-medium text-gray-700 mb-2">Resume / CV</label>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                  <FileText size={24} />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-800 text-sm">
+                    {formData.resumeLink ? "Resume Uploaded" : "No Resume Uploaded"}
+                  </h4>
+                  {formData.resumeLink && (
+                    <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                      <CheckCircle size={14} /> Verified in Storage
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+                {formData.resumeLink && (
+                  <a
+                    href={formData.resumeLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 sm:flex-none text-center px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
+                  >
+                    View Resume
+                  </a>
+                )}
+                
+                {isEditing && (
+                  <label className="flex-1 sm:flex-none text-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-md cursor-pointer flex items-center justify-center gap-2">
+                    <Upload size={16} />
+                    {uploadingResume ? 'Uploading...' : 'Upload New'}
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleResumeUpload}
+                      disabled={uploadingResume}
+                    />
+                  </label>
+                )}
+              </div>
             </div>
+            {isEditing && (
+              <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX up to 5MB</p>
+            )}
           </div>
 
           <div className="md:col-span-2">

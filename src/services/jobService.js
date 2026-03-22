@@ -212,9 +212,9 @@ export const getApplicationsForRecruiter = async (recruiterId) => {
     }
 };
 
-export const updateApplicationStatus = async (appId, status) => {
+export const updateApplicationStatus = async (appId, status, additionalData = {}) => {
     try {
-        await updateDoc(doc(db, APPLICATIONS_COLLECTION, appId), { status });
+        await updateDoc(doc(db, APPLICATIONS_COLLECTION, appId), { status, ...additionalData });
         return { success: true };
     } catch (error) {
         console.error('Error updating application status:', error);
@@ -272,6 +272,18 @@ export const revokeApplication = async (applicationId) => {
         return { success: true };
     } catch (error) {
         console.error('Error revoking application:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Admin: get all applications across all jobs
+export const getAllApplications = async () => {
+    try {
+        const querySnapshot = await getDocs(collection(db, APPLICATIONS_COLLECTION));
+        const apps = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        return { success: true, data: apps };
+    } catch (error) {
+        console.error('Error fetching all applications:', error);
         return { success: false, error: error.message };
     }
 };

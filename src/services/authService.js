@@ -285,6 +285,7 @@ export const setupAuthListener = (callback) => {
           name: userData.name,
           department,
           passoutYear,
+          photoUrl: userData.photoUrl || '',
         });
       } else {
         // User authenticated but no document found

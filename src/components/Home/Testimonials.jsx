@@ -19,7 +19,7 @@ const testimonials = [
         id: 3,
         name: 'Amit Patel',
         role: 'Placed at Amazon (2025)',
-        content: 'The mock tests and interview scheduling features were a game changer for my preparation.',
+        content: 'The aptitude tests and interview scheduling features were a game changer for my preparation.',
         image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amit'
     }
 ];

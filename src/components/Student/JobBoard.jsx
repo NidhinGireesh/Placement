@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { getTargetedJobs, applyForJob, getApplicationsForStudent } from '../../services/jobService';
+import { getStudentProfile } from '../../services/studentService';
 
 export default function JobBoard() {
     const { user } = useAuthStore();
@@ -58,11 +59,23 @@ export default function JobBoard() {
         }
 
         setApplying(true);
+        const profileResult = await getStudentProfile(user.uid);
+        const resumeUrl = profileResult.success ? profileResult.resumeUrl : '';
+        const photoUrl = profileResult.success ? profileResult.photoUrl : (user.photoUrl || '');
+
+        if (!resumeUrl) {
+            alert("Please upload your resume in the Profile section before applying.");
+            setApplying(false);
+            return;
+        }
+
         const result = await applyForJob(job.id, job.postedBy, user.uid, {
             name: user.name,
             course: user.department || user.branch || '',
             cgpa: user.cgpa || '',
             backlogs: user.backlogs || 0,
+            resumeUrl,
+            photoUrl
         });
         setApplying(false);
 
