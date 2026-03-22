@@ -27,7 +27,7 @@ const CoordinatorSidebar = ({ onLogout }) => {
                 <p className="text-xs text-gray-400 mt-1">Management Console</p>
             </div>
 
-            <nav className="flex-1 py-6 space-y-1">
+            <nav className="flex-1 py-6 space-y-1 overflow-y-auto scrollbar-thin">
                 <SidebarItem to="/coordinator" icon="📊" label="Dashboard" />
                 <SidebarItem to="/coordinator/verification" icon="✅" label="Verification" />
                 <SidebarItem to="/coordinator/communication" icon="📢" label="Communication" />
