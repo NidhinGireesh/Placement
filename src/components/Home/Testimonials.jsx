@@ -1,75 +1,40 @@
-import React, { useState, useEffect } from 'react';
-
-const testimonials = [
-    {
-        id: 1,
-        name: 'Rahul Verma',
-        role: 'Placed at Google (2025)',
-        content: 'The placement portal made applying to companies so simple. I could track my application status in real-time!',
-        image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul'
-    },
-    {
-        id: 2,
-        name: 'Priya Singh',
-        role: 'HR Manager, Infosys',
-        content: 'Shortlisting candidates became faster and efficient. The automated filtering saved us hours of work.',
-        image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Priya'
-    },
-    {
-        id: 3,
-        name: 'Amit Patel',
-        role: 'Placed at Amazon (2025)',
-        content: 'The aptitude tests and interview scheduling features were a game changer for my preparation.',
-        image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amit'
-    }
-];
+import React from 'react';
 
 export default function Testimonials() {
-    const [current, setCurrent] = useState(0);
-
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setCurrent((prev) => (prev + 1) % testimonials.length);
-        }, 5000);
-        return () => clearInterval(timer);
-    }, []);
-
     return (
         <section className="py-16 bg-gradient-to-br from-indigo-50 to-blue-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">Success Stories</h2>
+                <h2 className="text-3xl font-bold text-center mb-12 text-gray-800 uppercase tracking-wider">Success Stories</h2>
 
                 <div className="max-w-4xl mx-auto">
-                    <div className="bg-white p-8 md:p-12 rounded-3xl shadow-xl relative overflow-hidden text-center transition-all duration-500">
-                        <div className="text-6xl text-blue-100 absolute top-4 left-6 font-serif">“</div>
-
-                        <div className="relative z-10">
-                            <p className="text-xl md:text-2xl text-gray-700 italic mb-8 leading-relaxed">
-                                "{testimonials[current].content}"
+                    <div className="bg-white/70 backdrop-blur-md p-12 md:p-16 rounded-[2rem] border border-white/50 shadow-2xl relative overflow-hidden text-center transition-all duration-700 hover:shadow-indigo-500/10">
+                        {/* Decorative background elements */}
+                        <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-100 rounded-full blur-3xl opacity-50"></div>
+                        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
+                        
+                        <div className="text-6xl text-indigo-400/20 absolute top-4 left-6 font-serif">“</div>
+                        
+                        <div className="relative z-10 flex flex-col items-center">
+                            <div className="w-20 h-20 bg-indigo-50 rounded-2xl flex items-center justify-center mb-8 rotate-3 shadow-lg group-hover:rotate-6 transition-transform">
+                                <span className="text-4xl">🚀</span>
+                            </div>
+                            
+                            <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+                                Future Success Stories Loading...
+                            </h3>
+                            
+                            <p className="text-lg md:text-xl text-gray-600 italic leading-relaxed max-w-2xl mx-auto">
+                                "The next big milestone could be yours. We are currently gathering the latest placement achievements from our bright students to share with you."
                             </p>
-
-                            <div className="flex flex-col items-center">
-                                <img
-                                    src={testimonials[current].image}
-                                    alt={testimonials[current].name}
-                                    className="w-16 h-16 rounded-full border-4 border-blue-100 mb-3"
-                                />
-                                <h4 className="font-bold text-lg text-gray-900">{testimonials[current].name}</h4>
-                                <p className="text-blue-600 text-sm font-medium">{testimonials[current].role}</p>
+                            
+                            <div className="mt-8 flex items-center space-x-2 text-indigo-600 font-semibold tracking-wide uppercase text-sm">
+                                <span className="w-8 h-[2px] bg-indigo-600"></span>
+                                <span>Be part of our legacy</span>
+                                <span className="w-8 h-[2px] bg-indigo-600"></span>
                             </div>
                         </div>
 
-                        {/* Dots */}
-                        <div className="flex justify-center space-x-2 mt-8">
-                            {testimonials.map((_, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => setCurrent(index)}
-                                    className={`w-3 h-3 rounded-full transition-all duration-300 ${current === index ? 'bg-blue-600 w-6' : 'bg-gray-300'
-                                        }`}
-                                />
-                            ))}
-                        </div>
+                        <div className="text-6xl text-indigo-400/20 absolute bottom-4 right-6 font-serif rotate-180">“</div>
                     </div>
                 </div>
             </div>

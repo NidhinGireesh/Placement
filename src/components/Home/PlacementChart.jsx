@@ -2,11 +2,11 @@ import React from 'react';
 
 export default function PlacementChart() {
     const data = [
-        { department: 'CSE', percentage: 92, color: 'bg-blue-500' },
-        { department: 'ECE', percentage: 81, color: 'bg-indigo-500' },
-        { department: 'ME', percentage: 70, color: 'bg-purple-500' },
-        { department: 'CE', percentage: 65, color: 'bg-teal-500' },
-        { department: 'IT', percentage: 88, color: 'bg-cyan-500' },
+        { department: 'CSE', percentage: 0, color: 'bg-blue-500' },
+        { department: 'ECE', percentage: 0, color: 'bg-indigo-500' },
+        { department: 'ME', percentage: 0, color: 'bg-purple-500' },
+        { department: 'CE', percentage: 0, color: 'bg-teal-500' },
+        { department: 'IT', percentage: 0, color: 'bg-cyan-500' },
     ];
 
     return (
