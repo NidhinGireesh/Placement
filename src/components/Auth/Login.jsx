@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginUser, resetPassword } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
@@ -9,7 +9,25 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { setUser, setRole } = useAuthStore();
+  const { user, setUser, setRole, loading: authLoading } = useAuthStore();
+
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user && user.role) {
+      navigate(`/${user.role}`, { replace: true });
+    }
+  }, [user, authLoading, navigate]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-500 font-medium">Verifying Session...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault();

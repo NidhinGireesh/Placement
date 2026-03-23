@@ -59,9 +59,6 @@ export default function ApplicationTracking() {
 
     return (
         <div className="bg-white rounded-xl shadow-md overflow-hidden relative">
-            <div className="p-6 border-b border-gray-100">
-                <h2 className="text-xl font-bold text-gray-800">My Applications</h2>
-            </div>
 
             <div className="overflow-x-auto">
                 {loading ? (

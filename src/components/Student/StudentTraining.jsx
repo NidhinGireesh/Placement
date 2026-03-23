@@ -37,11 +37,7 @@ export default function StudentTraining() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Training & Courses</h2>
-                    <p className="text-gray-500 mt-1">Enhance your skills with recommended courses</p>
-                </div>
+            <div className="flex justify-end items-center mb-6">
                 <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-sm">
                     Browse More
                 </button>

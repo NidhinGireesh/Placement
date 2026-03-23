@@ -69,7 +69,10 @@ export default function JobBoard() {
             return;
         }
 
-        const result = await applyForJob(job.id, job.postedBy, user.uid, {
+        const recruiterId = job.postedBy || job.recruiterId || null;
+        // No longer strictly requiring recruiterId to allow applications for Admin-posted jobs.
+
+        const result = await applyForJob(job.id, recruiterId, user.uid, {
             name: user.name,
             course: user.department || user.branch || '',
             cgpa: user.cgpa || '',
@@ -84,7 +87,8 @@ export default function JobBoard() {
             setAppliedJobs(prev => [...prev, job.id]);
             closeModal();
         } else {
-            alert(result.error);
+            console.error("Apply Error Details:", result.error);
+            alert(`Application failed: ${result.error}`);
         }
     };
 
@@ -109,11 +113,7 @@ export default function JobBoard() {
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-                <div>
-                    <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Placement Opportunities</h2>
-                    <p className="text-slate-500 mt-2">Tailored listings based on your branch ({user.department || 'Not Set'}) and batch ({user.passoutYear || 'Not Set'})</p>
-                </div>
+            <div className="mb-8 flex flex-col items-end">
                 <div className="relative group w-full md:w-80">
                     <input
                         type="text"

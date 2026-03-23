@@ -45,32 +45,32 @@ export const getStudentsByClass = async (branch, passoutYear) => {
         for (const docSnapshot of querySnapshot.docs) {
             const studentData = docSnapshot.data();
 
-            // Fetch Name from Users collection
-            let name = "Unknown";
+            // Fetch Name and Status from Users collection (where the main approval logic sits)
+            let userData = { name: "Unknown" };
             if (studentData.userId) {
                 const userDoc = await getDoc(doc(db, 'users', studentData.userId));
                 if (userDoc.exists()) {
-                    name = userDoc.data().name;
+                    userData = userDoc.data();
                 }
             }
-
-            students.push({
-                id: docSnapshot.id, // Firestore Doc ID (needed for update)
-                ...studentData,
-                name: name,
-                regNo: studentData.registerNumber, // Map to UI expectation
-                status: studentData.approvalStatus || 'Pending', // Map to UI expectation
-                // Default incomplete fields for avoiding UI crash if data missing
-                cgpa: studentData.cgpa || 0,
-                backlogs: studentData.backlogs || 0,
-                resume: studentData.resumeUrl || '',
-            });
+ 
+            if (userData.name !== "Unknown") {
+                students.push({
+                    id: docSnapshot.id,
+                    ...studentData,
+                    ...userData, // Spread user document (includes 'approved' boolean and 'status')
+                    name: userData.name,
+                    regNo: studentData.registerNumber,
+                    // Use user's status as primary if profile status is missing/old
+                    status: userData.status || studentData.approvalStatus || 'pending',
+                    cgpa: studentData.cgpa || 0,
+                    backlogs: studentData.backlogs || 0,
+                    resume: studentData.resumeUrl || '',
+                });
+            }
         }
 
-        // Client-side filter to exclude coordinators
-        const filteredStudents = students.filter(s => s.originalRole !== 'coordinator');
-
-        return { success: true, data: filteredStudents };
+        return { success: true, data: students };
     } catch (error) {
         console.error('Error fetching students:', error);
         return { success: false, error: error.message };
@@ -96,7 +96,8 @@ export const updateStudentStatus = async (studentDocId, status) => {
             if (userId) {
                 const userRef = doc(db, 'users', userId);
                 await updateDoc(userRef, {
-                    approved: status === 'Verified' // True if Verified, False otherwise
+                    approved: status === 'approved', // True if approved, False otherwise
+                    status: status // 'approved', 'rejected', or 'pending'
                 });
             }
             return { success: true };

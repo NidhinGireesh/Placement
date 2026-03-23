@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
@@ -17,8 +17,27 @@ import ContactSection from '../components/Home/ContactSection';
 import Footer from '../components/Footer';
 
 export default function Home() {
-  const { user } = useAuthStore();
+  const { user, loading: authLoading } = useAuthStore();
   const navigate = useNavigate();
+
+  // Auto-redirect to dashboard if already logged in
+  useEffect(() => {
+    if (!authLoading && user && user.role) {
+      navigate(`/${user.role}`, { replace: true });
+    }
+  }, [user, authLoading, navigate]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white font-sans text-gray-900">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+          <h2 className="text-xl font-bold text-gray-800">Entering Portal...</h2>
+          <p className="text-gray-500 mt-2">Please wait while we set things up.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">

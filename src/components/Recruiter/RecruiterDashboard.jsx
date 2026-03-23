@@ -11,10 +11,13 @@ import {
   updateApplicationStatus
 } from '../../services/jobService';
 
+import UserProfile from '../Shared/UserProfile';
+import AnnouncementsView from '../Shared/AnnouncementsView';
+
 export default function RecruiterDashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Company profile state
@@ -99,6 +102,7 @@ export default function RecruiterDashboard() {
     candidate: '',
     date: '',
     time: '',
+    venue: '',
     message: '',
   });
   const [selectionList, setSelectionList] = useState([]);
@@ -136,6 +140,9 @@ export default function RecruiterDashboard() {
   const shortlistedCount = applications.filter(
     (app) => app.status === 'Shortlisted'
   ).length;
+  const interviewScheduledCount = applications.filter(
+    (app) => app.status === 'Interview Scheduled'
+  ).length;
 
   const handleLogout = async () => {
     const result = await logoutUser();
@@ -144,6 +151,28 @@ export default function RecruiterDashboard() {
       navigate('/login');
     }
   };
+
+  const getHeaderContent = () => {
+    switch (activeTab) {
+      case 'profile':
+        return {
+          title: <>Welcome, <span className="text-blue-600">{user?.name}</span>! 👋</>,
+          subtitle: "Recruiter Dashboard & Profile"
+        };
+      case 'jobPosting':
+        return { title: 'Job Postings', subtitle: 'Create and manage your recruitment drives.' };
+      case 'applicationHandling':
+        return { title: 'Applications', subtitle: 'Review candidate profiles and shortlist.' };
+      case 'selectionProcess':
+        return { title: 'Selection Process', subtitle: 'Schedule interviews and finalize hires.' };
+      case 'announcements':
+        return { title: 'Campus Announcements', subtitle: 'Stay updated with placement news and notices.' };
+      default:
+        return { title: 'Recruiter Dashboard', subtitle: 'Hiring Portal' };
+    }
+  };
+
+  const headerContent = getHeaderContent();
 
   // Handlers for company profile
   const handleProfileChange = (e) => {
@@ -272,9 +301,13 @@ export default function RecruiterDashboard() {
   const handleInterviewSubmit = async (e) => {
     e.preventDefault();
     const selectedCandidates = selectionList.filter(cand => cand.selected);
-    
     if (selectedCandidates.length === 0) {
-      showNotification('error', 'Please select candidates from the list to schedule.');
+      setNotification({ type: 'error', message: 'Please select at least one candidate.' });
+      return;
+    }
+
+    if (!interviewSchedule.date || !interviewSchedule.time || !interviewSchedule.venue) {
+      setNotification({ type: 'error', message: 'Date, Time, and Venue are required.' });
       return;
     }
 
@@ -288,6 +321,7 @@ export default function RecruiterDashboard() {
       const result = await updateApplicationStatus(cand.id, 'Interview Scheduled', {
         interviewDate: interviewSchedule.date,
         interviewTime: interviewSchedule.time,
+        interviewVenue: interviewSchedule.venue,
         interviewMessage: interviewSchedule.message || ''
       });
       if (result.success) successCount++;
@@ -315,8 +349,13 @@ export default function RecruiterDashboard() {
     showNotification('success', 'Selected candidate list published.');
   };
 
+  const unpublishSelectedList = () => {
+    setIsPublished(false);
+    showNotification('success', 'Selected candidate list unpublished.');
+  };
+
   const navItems = [
-    { id: 'profile', label: 'Company Profile', icon: '🏢' },
+    { id: 'overview', label: 'Dashboard', icon: '📊' },
     { id: 'jobPosting', label: 'Job Posting', icon: '📢' },
     { id: 'applicationHandling', label: 'Applications', icon: '📄' },
     { id: 'selectionProcess', label: 'Selection Process', icon: '✅' },
@@ -328,20 +367,23 @@ export default function RecruiterDashboard() {
       <aside
         className={`
           ${isSidebarOpen ? 'w-64' : 'w-20'} 
-          bg-slate-900 text-white transition-all duration-300 ease-in-out flex flex-col shadow-xl z-20
+          bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col shadow-sm z-20
         `}
       >
-        <div className="flex items-center justify-between h-16 px-4 bg-slate-900 border-b border-slate-800">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-100">
           {isSidebarOpen ? (
-            <h1 className="text-xl font-bold tracking-wider bg-gradient-to-r from-purple-400 to-indigo-500 bg-clip-text text-transparent">
-              RECRUITER
-            </h1>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-black tracking-tighter bg-gradient-to-br from-blue-600 to-indigo-700 bg-clip-text text-transparent">
+                RECRUITER
+              </h1>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none">Hiring Portal</p>
+            </div>
           ) : (
-            <span className="text-xl font-bold mx-auto">RH</span>
+            <span className="text-xl font-black text-blue-600 mx-auto">RC</span>
           )}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-1 rounded-md hover:bg-slate-800 text-slate-400 hidden md:block"
+            className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-400 hidden md:block transition-colors border border-transparent hover:border-gray-200"
           >
             {isSidebarOpen ? '◀' : '▶'}
           </button>
@@ -354,20 +396,25 @@ export default function RecruiterDashboard() {
                 <button
                   onClick={() => setActiveTab(item.id)}
                   className={`
-                    flex items-center w-full px-3 py-3 rounded-lg transition-all duration-200 group
+                    flex items-center w-full px-3 py-3 rounded-xl transition-all duration-200 group relative
                     ${activeTab === item.id
-                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'}
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}
                   `}
                 >
-                  <span className="text-xl min-w-[1.5rem] flex justify-center transform group-hover:scale-110 transition-transform">
+                  {activeTab === item.id && (
+                    <div className="absolute left-0 w-1 h-6 bg-blue-600 rounded-r-full" />
+                  )}
+                  <span className={`text-xl min-w-[1.5rem] flex justify-center transform group-hover:scale-110 transition-all duration-300 ${activeTab === item.id ? 'text-blue-600' : 'grayscale group-hover:grayscale-0'}`}>
                     {item.icon}
                   </span>
                   {isSidebarOpen && (
-                    <span className="ml-3 font-medium truncate">{item.label}</span>
+                    <span className={`ml-3 font-semibold truncate ${activeTab === item.id ? 'text-blue-700' : ''}`}>
+                      {item.label}
+                    </span>
                   )}
                   {activeTab === item.id && !isSidebarOpen && (
-                    <div className="absolute left-20 bg-slate-800 text-white p-2 rounded shadow-lg text-xs whitespace-nowrap z-50">
+                    <div className="absolute left-16 bg-gray-900 text-white px-3 py-1.5 rounded-lg text-xs whitespace-nowrap z-50 shadow-xl">
                       {item.label}
                     </div>
                   )}
@@ -377,89 +424,137 @@ export default function RecruiterDashboard() {
           </ul>
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-6 border-t border-gray-100 mt-auto pb-8">
           <button
             onClick={handleLogout}
             className={`
-              flex items-center w-full px-3 py-3 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors
+              flex items-center w-full px-3 py-3 rounded-xl text-red-500 hover:bg-red-50 transition-all duration-200 group
               ${!isSidebarOpen && 'justify-center'}
             `}
           >
-            <span className="text-xl">🚪</span>
-            {isSidebarOpen && <span className="ml-3 font-medium">Logout</span>}
+            <span className="text-xl group-hover:rotate-12 transition-transform">🚪</span>
+            {isSidebarOpen && <span className="ml-3 font-semibold">Logout</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-hidden flex flex-col">
-        {/* Top Header */}
-        <header className="h-16 bg-white shadow-sm border-b px-8 flex items-center justify-between z-10">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800">
-              Welcome, <span className="text-purple-600">{user?.name}</span>
-            </h2>
-            <p className="text-sm text-slate-500">Recruiter Dashboard</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setActiveTab('jobPosting')}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md transition-transform transform hover:-translate-y-0.5"
-            >
-              + Post New Job
-            </button>
-            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold border-2 border-white shadow-sm">
-              R
-            </div>
-          </div>
-        </header>
-
+      <main className="flex-1 overflow-hidden flex flex-col bg-gray-50/50">
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50">
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           {notification && (
-            <div className={`fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 text-white animate-fadeIn ${notification.type === 'error' ? 'bg-red-500' : 'bg-green-500'
-              }`}>
+            <div className={`fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 text-white animate-fadeIn ${notification.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>
               {notification.message}
             </div>
           )}
 
           <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
+            {/* Unified Top Header */}
+            <header className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4 border-b border-gray-200/50 pb-6 relative">
+              <div className="flex items-center gap-4">
+                {activeTab !== 'overview' && (
+                  <button 
+                    onClick={() => setActiveTab('overview')}
+                    className="p-2.5 rounded-xl bg-white border border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm group shrink-0"
+                    title="Back to Dashboard"
+                  >
+                    <span className="text-xl group-hover:-translate-x-1 inline-block transition-transform duration-200">⬅️</span>
+                  </button>
+                )}
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
+                    {headerContent.title}
+                  </h1>
+                  <p className="text-gray-500 mt-2 font-medium">{headerContent.subtitle}</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={() => setActiveTab('announcements')} 
+                  className="relative p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                  title="View Announcements"
+                >
+                  <span className="text-2xl">🔔</span>
+                  <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white"></span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('my-profile')}
+                  className="h-12 w-12 rounded-full text-blue-600 flex items-center justify-center font-black text-xl shadow-sm border-2 border-white ring-2 ring-gray-50 overflow-hidden cursor-pointer hover:ring-blue-200 transition-all"
+                >
+                  {user?.photoUrl ? (
+                    <img src={user.photoUrl} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-blue-100 flex items-center justify-center">
+                      {user?.name?.charAt(0)?.toUpperCase()}
+                    </div>
+                  )}
+                </button>
+              </div>
+            </header>
 
             {/* PROFILE SECTION */}
-            {activeTab === 'profile' && (
+            {activeTab === 'my-profile' && <UserProfile />}
+            {activeTab === 'announcements' && <AnnouncementsView />}
+            {activeTab === 'overview' && (
               <div className="grid grid-cols-1 gap-6">
                 {/* Stats Row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <button 
+                    onClick={() => setActiveTab('jobPosting')}
+                    className="group bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl shadow-blue-200 relative overflow-hidden transition-all hover:scale-[1.02] active:scale-95 text-left"
+                  >
                     <div className="relative z-10">
-                      <p className="text-purple-100 font-medium mb-1">Active Job Postings</p>
-                      <h3 className="text-4xl font-bold">{activeJobsCount}</h3>
-                      <p className="text-xs text-purple-200 mt-2">Positions open for applications</p>
+                      <p className="text-blue-100 font-bold uppercase tracking-wider text-[10px] mb-1">Active Job Postings</p>
+                      <h3 className="text-4xl font-black">{activeJobsCount}</h3>
+                      <p className="text-xs text-blue-200 mt-2 font-medium">Positions open for applications</p>
                     </div>
-                    <div className="absolute right-0 bottom-0 opacity-20 transform translate-x-1/4 translate-y-1/4">
-                      <span className="text-9xl">📢</span>
+                    <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4 group-hover:scale-110 transition-transform duration-500 group-hover:rotate-12">
+                      <span className="text-9xl grayscale brightness-200">📢</span>
                     </div>
-                  </div>
+                  </button>
 
-                  <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-slate-500 font-medium mb-1">Total Applications</p>
-                        <h3 className="text-3xl font-bold text-slate-800">{totalApplicationsCount}</h3>
-                      </div>
-                      <span className="bg-blue-50 text-blue-600 p-2 rounded-lg text-xl">📄</span>
+                  <button 
+                    onClick={() => setActiveTab('applicationHandling')}
+                    className="group bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-6 text-white shadow-xl shadow-indigo-100 relative overflow-hidden transition-all hover:scale-[1.02] active:scale-95 text-left"
+                  >
+                    <div className="relative z-10">
+                      <p className="text-indigo-100 font-bold uppercase tracking-wider text-[10px] mb-1">Total Applications</p>
+                      <h3 className="text-4xl font-black">{totalApplicationsCount}</h3>
+                      <p className="text-xs text-indigo-200 mt-2 font-medium">Candidates applied for jobs</p>
                     </div>
-                  </div>
+                    <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4 group-hover:scale-110 transition-transform duration-500 group-hover:rotate-12">
+                      <span className="text-9xl grayscale brightness-200">📄</span>
+                    </div>
+                  </button>
 
-                  <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-green-500">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-slate-500 font-medium mb-1">Shortlisted</p>
-                        <h3 className="text-3xl font-bold text-slate-800">{shortlistedCount}</h3>
-                      </div>
-                      <span className="bg-green-50 text-green-600 p-2 rounded-lg text-xl">✅</span>
+                  <button 
+                    onClick={() => setActiveTab('applicationHandling')}
+                    className="group bg-gradient-to-br from-violet-600 to-fuchsia-700 rounded-2xl p-6 text-white shadow-xl shadow-fuchsia-100 relative overflow-hidden transition-all hover:scale-[1.02] active:scale-95 text-left"
+                  >
+                    <div className="relative z-10">
+                      <p className="text-fuchsia-100 font-bold uppercase tracking-wider text-[10px] mb-1">Interviews Scheduled</p>
+                      <h3 className="text-4xl font-black">{interviewScheduledCount}</h3>
+                      <p className="text-xs text-fuchsia-200 mt-2 font-medium">Candidates with interview dates</p>
                     </div>
-                  </div>
+                    <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4 group-hover:scale-110 transition-transform duration-500 group-hover:rotate-12">
+                      <span className="text-9xl grayscale brightness-200">🤝</span>
+                    </div>
+                  </button>
+
+                  <button 
+                    onClick={() => setActiveTab('selectionProcess')}
+                    className="group bg-gradient-to-br from-emerald-500 to-teal-700 rounded-2xl p-6 text-white shadow-xl shadow-emerald-100 relative overflow-hidden transition-all hover:scale-[1.02] active:scale-95 text-left"
+                  >
+                    <div className="relative z-10">
+                      <p className="text-emerald-100 font-bold uppercase tracking-wider text-[10px] mb-1">Shortlisted</p>
+                      <h3 className="text-4xl font-black">{shortlistedCount}</h3>
+                      <p className="text-xs text-emerald-200 mt-2 font-medium">Selected for next rounds</p>
+                    </div>
+                    <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4 group-hover:scale-110 transition-transform duration-500 group-hover:rotate-12">
+                      <span className="text-9xl grayscale brightness-200">✅</span>
+                    </div>
+                  </button>
                 </div>
 
                 {/* Profile Form */}
@@ -907,7 +1002,19 @@ export default function RecruiterDashboard() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Message to Candidates</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Venue / Location</label>
+                        <input
+                          type="text"
+                          name="venue"
+                          required
+                          value={interviewSchedule.venue}
+                          onChange={handleInterviewChange}
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                          placeholder="e.g. Conference Room A, Google Meet Link, or Office Address"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Additional Instructions (Optional)</label>
                         <textarea
                           name="message"
                           value={interviewSchedule.message}
@@ -973,13 +1080,23 @@ export default function RecruiterDashboard() {
                         </div>
                       ))}
                     </div>
-                    <button
-                      onClick={publishSelectedList}
-                      className="w-full bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-lg font-medium shadow-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                      <span>🚀</span>
-                      {isPublished ? 'Update Published List' : 'Publish Final List'}
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={publishSelectedList}
+                        className="w-full bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-lg font-medium shadow-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <span>🚀</span>
+                        {isPublished ? 'Update Published List' : 'Publish Final List'}
+                      </button>
+                      {isPublished && (
+                        <button
+                          onClick={unpublishSelectedList}
+                          className="w-full bg-white border border-red-200 text-red-600 hover:bg-red-50 py-2 rounded-lg font-medium transition-colors"
+                        >
+                          Unpublish
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

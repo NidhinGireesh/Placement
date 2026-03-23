@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getUsersByRole } from '../../services/adminService';
 
-export default function DashboardOverview({ setActiveTab }) {
+export default function DashboardOverview({ setActiveTab, setStudentFilter }) {
     const [students, setStudents] = useState([]);
     const [recruiters, setRecruiters] = useState([]);
     const [coordinators, setCoordinators] = useState([]);
@@ -14,7 +14,13 @@ export default function DashboardOverview({ setActiveTab }) {
             const recruiterResult = await getUsersByRole('recruiter');
             const coordinatorResult = await getUsersByRole('coordinator');
 
-            if (studentResult.success) setStudents(studentResult.data);
+            // Combine students and coordinators for "Total Students" stats
+            if (studentResult.success && coordinatorResult.success) {
+                setStudents([...studentResult.data, ...coordinatorResult.data]);
+            } else if (studentResult.success) {
+                setStudents(studentResult.data);
+            }
+
             if (recruiterResult.success) setRecruiters(recruiterResult.data);
             if (coordinatorResult.success) setCoordinators(coordinatorResult.data);
             setLoading(false);
@@ -36,15 +42,33 @@ export default function DashboardOverview({ setActiveTab }) {
             icon: "👨‍🎓",
             color: "from-blue-500 to-blue-600",
             bg: "bg-blue-50",
-            text: "text-blue-600"
+            text: "text-blue-600",
+            tab: "students",
+            filter: "all"
         },
         {
             title: "Approved Students",
-            value: students.filter((s) => s.status === 'approved').length,
+            value: students.filter((s) => s.status?.toLowerCase() === 'approved' || s.approved).length,
             icon: "✅",
             color: "from-green-500 to-green-600",
             bg: "bg-green-50",
-            text: "text-green-600"
+            text: "text-green-600",
+            tab: "students",
+            filter: "approved"
+        },
+        {
+            title: "Pending Students",
+            value: students.filter((s) => {
+                const status = s.status?.toLowerCase();
+                // Treat null, undefined, or empty string as pending (like Admin's request earlier)
+                return (status === 'pending' || !status) && !s.approved && !s.blocked;
+            }).length,
+            icon: "⏳",
+            color: "from-amber-400 to-amber-600",
+            bg: "bg-amber-50",
+            text: "text-amber-600",
+            tab: "students",
+            filter: "pending"
         },
         {
             title: "Blocked Students",
@@ -52,7 +76,9 @@ export default function DashboardOverview({ setActiveTab }) {
             icon: "🚫",
             color: "from-red-500 to-red-600",
             bg: "bg-red-50",
-            text: "text-red-600"
+            text: "text-red-600",
+            tab: "students",
+            filter: "blocked"
         },
         {
             title: "Recruiters",
@@ -60,7 +86,8 @@ export default function DashboardOverview({ setActiveTab }) {
             icon: "🏢",
             color: "from-purple-500 to-purple-600",
             bg: "bg-purple-50",
-            text: "text-purple-600"
+            text: "text-purple-600",
+            tab: "recruiters"
         },
         {
             title: "Coordinators",
@@ -68,7 +95,8 @@ export default function DashboardOverview({ setActiveTab }) {
             icon: "👔",
             color: "from-amber-500 to-amber-600",
             bg: "bg-amber-50",
-            text: "text-amber-600"
+            text: "text-amber-600",
+            tab: "coordinators"
         },
     ];
 
@@ -81,26 +109,33 @@ export default function DashboardOverview({ setActiveTab }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {stats.map((stat, index) => (
-                    <div key={index} className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 hover:shadow-md transition-shadow duration-300">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="text-sm font-medium text-slate-500 mb-1">{stat.title}</p>
-                                <h3 className="text-3xl font-bold text-slate-800">{stat.value}</h3>
-                            </div>
-                            <div className={`p-3 rounded-lg ${stat.bg} ${stat.text} text-xl`}>
-                                {stat.icon}
-                            </div>
+                    <button 
+                        key={index} 
+                        onClick={() => {
+                            if (stat.tab) {
+                                setActiveTab(stat.tab);
+                                if (stat.filter) setStudentFilter(stat.filter);
+                            }
+                        }}
+                        className={`group bg-gradient-to-br ${stat.color} rounded-2xl p-6 text-white shadow-xl shadow-blue-100 relative overflow-hidden transition-all hover:scale-[1.02] active:scale-95 text-left ${stat.tab ? 'cursor-pointer' : 'cursor-default'}`}
+                    >
+                        <div className="relative z-10">
+                            <p className="text-white/80 font-bold uppercase tracking-wider text-[10px] mb-1">{stat.title}</p>
+                            <h3 className="text-4xl font-black tracking-tight">{stat.value}</h3>
+                            <p className="text-[10px] text-white/60 mt-2 font-medium uppercase tracking-widest group-hover:opacity-100 transition-opacity flex items-center gap-1 opacity-0">
+                                Click to view details <span className="text-xl">→</span>
+                            </p>
                         </div>
-                        <div className="mt-4 w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                            <div className={`h-full rounded-full bg-gradient-to-r ${stat.color} w-3/4`} style={{ width: '70%' }}></div>
+                        <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4 group-hover:scale-110 transition-transform duration-500 group-hover:rotate-12">
+                            <span className="text-9xl grayscale brightness-200">{stat.icon}</span>
                         </div>
-                    </div>
+                    </button>
                 ))}
             </div>
 
-            {/* Recent Activity or Quick Actions could go here */}
-            <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+            {/* Recent Activity or Quick Actions */}
+            <div className="mt-8">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 max-w-2xl">
                     <h3 className="text-lg font-bold text-slate-800 mb-4">Quick Actions</h3>
                     <div className="grid grid-cols-2 gap-4">
                         <button
@@ -117,54 +152,6 @@ export default function DashboardOverview({ setActiveTab }) {
                             <span className="block text-2xl mb-2 group-hover:scale-110 transition-transform origin-left">📢</span>
                             <span className="font-semibold text-slate-700 group-hover:text-purple-700">Post Job</span>
                         </button>
-                    </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl shadow-lg p-6 text-white overflow-hidden relative">
-                    <div className="relative z-10">
-                        <h3 className="text-xl font-bold mb-2">Placement Season 2026</h3>
-                        <p className="text-indigo-100 mb-6 max-w-sm">
-                            Manage the upcoming placement drive efficiently. Track analytics and reports in real-time.
-                        </p>
-                        <button className="bg-white text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-50 transition-colors">
-                            View Reports
-                        </button>
-                    </div>
-                    {/* Migration & Maintenance */}
-                    <div className="mt-8 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-                        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-800">System Migration</h3>
-                                <p className="text-slate-500 text-sm">Update legacy accounts to the new approval system.</p>
-                            </div>
-                            <button
-                                onClick={async () => {
-                                    if (window.confirm("This will approve ALL currently unapproved users. Are you sure?")) {
-                                        try {
-                                            const { bulkApproveExistingUsers } = await import('../../services/adminService');
-                                            const result = await bulkApproveExistingUsers();
-                                            if (result.success) {
-                                                alert(result.count ? `Successfully approved ${result.count} users!` : result.message);
-                                                window.location.reload();
-                                            } else {
-                                                alert("Error: " + result.error);
-                                            }
-                                        } catch (err) {
-                                            alert("Failed to execute migration: " + err.message);
-                                        }
-                                    }
-                                }}
-                                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors shadow-md shadow-orange-500/20"
-                            >
-                                Approve All Existing Users
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4">
-                        <svg width="300" height="300" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                        </svg>
                     </div>
                 </div>
             </div>

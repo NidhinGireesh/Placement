@@ -1,8 +1,32 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerUser, getExistingCompanies } from '../../services/authService';
+import { useAuthStore } from '../../store/authStore';
 
 export default function Register() {
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuthStore();
+  const [role, setRole] = useState('');
+  const [step, setStep] = useState(1);
+
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user && user.role) {
+      navigate(`/${user.role}`, { replace: true });
+    }
+  }, [user, authLoading, navigate]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-500 font-medium">Checking Authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -32,7 +56,6 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [existingCompanies, setExistingCompanies] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (formData.role === 'recruiter') {

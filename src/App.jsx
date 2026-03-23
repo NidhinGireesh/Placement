@@ -23,16 +23,7 @@ import ApplicationTracking from './components/Student/ApplicationTracking';
 import InterviewSchedule from './components/Student/InterviewSchedule';
 import StudentTraining from './components/Student/StudentTraining';
 
-// Coordinator Modules
-import DashboardOverview from './components/Coordinator/DashboardOverview';
-import StudentVerification from './components/Coordinator/StudentVerification';
-// JobMonitoring removed as per requirements
-// ApplicationTracking removed as per requirements
-// InterviewCoordination removed as per requirements
-import Communication from './components/Coordinator/Communication';
-import TrainingWorkshop from './components/Coordinator/TrainingWorkshop';
-import PostAnnouncement from './components/Coordinator/PostAnnouncement';
-import ScheduleInterview from './components/Coordinator/ScheduleInterview';
+// Dashboard Components (Children rendered via state now)
 
 // Not Found
 import NotFound from './pages/NotFound';
@@ -81,29 +72,13 @@ function App() {
         }
       />
       <Route
-        path="/coordinator"
+        path="/coordinator/*"
         element={
           <ProtectedRoute requiredRole="coordinator">
             <CoordinatorDashboard />
           </ProtectedRoute>
         }
-      >
-        <Route index element={<DashboardOverview />} />
-        <Route path="verification" element={<StudentVerification />} />
-        {/* JobMonitoring route removed */}
-        {/* ApplicationTracking route removed */}
-        {/* InterviewCoordination route removed */}
-        <Route path="communication" element={<Communication />} />
-        <Route path="training" element={<TrainingWorkshop />} />
-        <Route path="post-announcement" element={<PostAnnouncement />} />
-
-        {/* Student Features for Coordinator */}
-        <Route path="student-profile" element={<StudentProfile />} />
-        <Route path="student-jobs" element={<JobBoard />} />
-        <Route path="student-applications" element={<ApplicationTracking />} />
-        <Route path="student-interviews" element={<InterviewSchedule />} />
-        <Route path="student-training" element={<StudentTraining />} />
-      </Route>
+      />
       <Route
         path="/recruiter/*"
         element={

@@ -65,8 +65,17 @@ export default function ContactSection() {
                             Our office is open from Monday to Friday, 9:00 AM to 5:00 PM.
                             Feel free to visit for any queries regarding placements, internships, or recruitment drives.
                         </p>
-                        <div className="w-full h-48 bg-gray-200 rounded-xl flex items-center justify-center text-gray-400">
-                            [Google Map Embed Placeholder]
+                        <div className="w-full h-[300px] overflow-hidden rounded-xl shadow-inner border border-gray-200">
+                            <iframe 
+                                src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d6582.366989004989!2d76.931017!3d9.850898!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b07ba40109a481f%3A0x68b6eed84716c7ce!2sGovernment%20Engineering%20College%20Idukki!5e1!3m2!1sen!2sin!4v1774291687811!5m2!1sen!2sin" 
+                                width="100%" 
+                                height="100%" 
+                                style={{ border: 0 }} 
+                                allowFullScreen="" 
+                                loading="lazy" 
+                                referrerpolicy="no-referrer-when-downgrade"
+                                title="GEC Idukki Location"
+                            ></iframe>
                         </div>
                     </div>
                 </div>

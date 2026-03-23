@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 export const useAuthStore = create((set) => ({
@@ -9,7 +8,7 @@ export const useAuthStore = create((set) => ({
   error: null,
 
   // Actions
-  setUser: (user) => set({ user }),
+  setUser: (user) => set({ user, loading: false }),
   setRole: (role) => set({ role }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
@@ -19,7 +18,7 @@ export const useAuthStore = create((set) => ({
     set({
       user: null,
       role: null,
-      loading:false,
+      loading: false,
       error: null,
     }),
 

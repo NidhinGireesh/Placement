@@ -155,6 +155,9 @@ export const getJobsByRecruiter = async (recruiterId) => {
 
 export const applyForJob = async (jobId, recruiterId, studentId, studentDetails) => {
     try {
+        // We no longer strictly require recruiterId at this stage to support Admin-posted jobs
+        // that may have been created without a specific recruiter account.
+
         const q = query(
             collection(db, APPLICATIONS_COLLECTION),
             where('jobId', '==', jobId),

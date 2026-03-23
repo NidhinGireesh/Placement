@@ -2,13 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { getUsersByRoles, updateUserStatus, deleteUserDoc, addUserDoc } from '../../services/adminService';
 import UserDetailsModal from './UserDetailsModal';
 
-export default function StudentManagement() {
+export default function StudentManagement({ initialFilter = 'all', setInitialFilter }) {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState(initialFilter);
     const [classFilter, setClassFilter] = useState('All');
     const [showAddForm, setShowAddForm] = useState(false);
     const [newStudent, setNewStudent] = useState({ name: '', email: '', department: '', gender: '' });
+
+    // Ensure statusFilter stays in sync if dashboard triggers a change
+    useEffect(() => {
+        if (initialFilter) {
+            setStatusFilter(initialFilter);
+        }
+    }, [initialFilter]);
 
     // Sorting state
     const [sortBy, setSortBy] = useState('name'); // 'name', 'department', 'passoutYear'
@@ -141,8 +149,17 @@ export default function StudentManagement() {
             student.class?.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesClass = classFilter === 'All' || student.class === classFilter;
+        
+        // Handle Status / Approval filtering
+        let matchesStatus = true;
+        if (statusFilter === 'approved') matchesStatus = student.status?.toLowerCase() === 'approved';
+        else if (statusFilter === 'pending') {
+            const statusStr = student.status?.toLowerCase() || 'pending';
+            matchesStatus = statusStr === 'pending';
+        }
+        else if (statusFilter === 'blocked') matchesStatus = student.blocked === true;
 
-        return matchesSearch && matchesClass;
+        return matchesSearch && matchesClass && matchesStatus;
     });
 
     const getSortIndicator = (field) => {
@@ -161,6 +178,23 @@ export default function StudentManagement() {
                 </div>
                 <div className="flex flex-wrap gap-4 w-full md:w-auto">
                     {/* Class Filter Dropdown */}
+                    <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status:</label>
+                        <select
+                            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium text-slate-700 bg-white"
+                            value={statusFilter}
+                            onChange={(e) => {
+                                setStatusFilter(e.target.value);
+                                if (setInitialFilter) setInitialFilter(e.target.value);
+                            }}
+                        >
+                            <option value="all">All</option>
+                            <option value="approved">Approved</option>
+                            <option value="pending">Pending</option>
+                            <option value="blocked">Blocked</option>
+                        </select>
+                    </div>
+
                     <div className="flex items-center gap-2">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Class:</label>
                         <select

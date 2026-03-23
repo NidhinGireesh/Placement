@@ -8,7 +8,7 @@ const StudentVerification = () => {
     const [loading, setLoading] = useState(true);
     const [coordinatorInfo, setCoordinatorInfo] = useState({ branch: '', year: '' });
 
-    const [filterStatus, setFilterStatus] = useState("All");
+    const [filterStatus, setFilterStatus] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedStudent, setSelectedStudent] = useState(null); // For Modal
 
@@ -36,9 +36,9 @@ const StudentVerification = () => {
 
     const handleApprove = async (id) => {
         if (window.confirm("Approve this student?")) {
-            const result = await updateStudentStatus(id, "Verified"); // Status remains "Verified" in DB, but UI says "Approve"
+            const result = await updateStudentStatus(id, "approved");
             if (result.success) {
-                setStudents(students.map(s => s.id === id ? { ...s, status: "Verified" } : s));
+                setStudents(students.map(s => s.id === id ? { ...s, status: "approved" } : s));
             } else {
                 alert("Failed to approve student.");
             }
@@ -47,9 +47,9 @@ const StudentVerification = () => {
 
     const handleReject = async (id) => {
         if (window.confirm("Reject this student?")) {
-            const result = await updateStudentStatus(id, "Rejected");
+            const result = await updateStudentStatus(id, "rejected");
             if (result.success) {
-                setStudents(students.map(s => s.id === id ? { ...s, status: "Rejected" } : s));
+                setStudents(students.map(s => s.id === id ? { ...s, status: "rejected" } : s));
             } else {
                 alert("Failed to reject student.");
             }
@@ -68,8 +68,8 @@ const StudentVerification = () => {
     };
 
     const filteredStudents = students.filter(student => {
-        // Branch filter removed because we only fetch students of the same branch
-        const matchesStatus = filterStatus === "All" || student.status === filterStatus;
+        const studentStatus = student.status?.toLowerCase() || 'pending';
+        const matchesStatus = filterStatus === "all" || studentStatus === filterStatus;
         const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (student.regNo && student.regNo.toLowerCase().includes(searchTerm.toLowerCase()));
         return matchesStatus && matchesSearch;
@@ -96,16 +96,16 @@ const StudentVerification = () => {
             {/* Analytics / Quick Stats for Verification */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-yellow-500">
-                    <p className="text-sm text-gray-500">Pending</p>
-                    <p className="text-2xl font-bold">{students.filter(s => s.status === 'Pending').length}</p>
+                    <p className="text-sm text-gray-500 uppercase tracking-wider font-bold text-[10px]">Pending Approvals</p>
+                    <p className="text-2xl font-black text-gray-800">{students.filter(s => (s.status?.toLowerCase() || 'pending') === 'pending').length}</p>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500">
-                    <p className="text-sm text-gray-500">Verified</p>
-                    <p className="text-2xl font-bold">{students.filter(s => s.status === 'Verified').length}</p>
+                    <p className="text-sm text-gray-500 uppercase tracking-wider font-bold text-[10px]">Approved</p>
+                    <p className="text-2xl font-black text-gray-800">{students.filter(s => s.status?.toLowerCase() === 'approved').length}</p>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-red-500">
-                    <p className="text-sm text-gray-500">Rejected</p>
-                    <p className="text-2xl font-bold">{students.filter(s => s.status === 'Rejected').length}</p>
+                    <p className="text-sm text-gray-500 uppercase tracking-wider font-bold text-[10px]">Rejected</p>
+                    <p className="text-2xl font-black text-gray-800">{students.filter(s => s.status?.toLowerCase() === 'rejected').length}</p>
                 </div>
             </div>
 
@@ -125,10 +125,10 @@ const StudentVerification = () => {
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
                     >
-                        <option value="All">All Status</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Verified">Verified</option>
-                        <option value="Rejected">Rejected</option>
+                        <option value="all">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
                     </select>
                 </div>
             </div>
@@ -177,10 +177,10 @@ const StudentVerification = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    ${student.status.toLowerCase() === 'verified' ? 'bg-green-100 text-green-800' :
-                                                student.status.toLowerCase() === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                    'bg-yellow-100 text-yellow-800'}`}>
-                                            {student.status}
+                    ${(student.status?.toLowerCase() || 'pending') === 'approved' ? 'bg-green-100 text-green-800' :
+                        (student.status?.toLowerCase() || 'pending') === 'rejected' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'}`}>
+                                            {student.status || 'pending'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
@@ -188,15 +188,15 @@ const StudentVerification = () => {
                                             {/* Show Approve/Reject for Pending (case-insensitive) OR allow changing status */}
                                             <button
                                                 onClick={() => handleApprove(student.id)}
-                                                className={`font-bold ${student.status.toLowerCase() === 'verified' ? 'text-gray-400 cursor-not-allowed' : 'text-green-600 hover:text-green-900'}`}
-                                                disabled={student.status.toLowerCase() === 'verified'}
+                                                className={`font-bold transition-colors ${student.status?.toLowerCase() === 'approved' ? 'text-gray-300 cursor-not-allowed' : 'text-green-600 hover:text-green-900 focus:outline-none'}`}
+                                                disabled={student.status?.toLowerCase() === 'approved'}
                                             >
                                                 Approve
                                             </button>
                                             <button
                                                 onClick={() => handleReject(student.id)}
-                                                className={`font-bold ${student.status.toLowerCase() === 'rejected' ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-900'}`}
-                                                disabled={student.status.toLowerCase() === 'rejected'}
+                                                className={`font-bold transition-colors ${student.status?.toLowerCase() === 'rejected' ? 'text-gray-300 cursor-not-allowed' : 'text-red-600 hover:text-red-900 focus:outline-none'}`}
+                                                disabled={student.status?.toLowerCase() === 'rejected'}
                                             >
                                                 Reject
                                             </button>

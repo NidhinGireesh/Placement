@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { postOpportunity, getAllJobs, deleteJob, updateJob, getAllApplications, updateApplicationStatus } from '../../../services/jobService';
 
 export default function JobDashboard({ filterType = 'All' }) {
@@ -235,9 +235,9 @@ function CreateJobForm({ onSuccess, defaultType = 'Job', initialData = null, onC
         setLoading(true);
         let result;
         if (initialData && initialData.id) {
-            result = await updateJob(initialData.id, formData);
+            result = await updateJob(initialData.id, { ...formData, postedBy: user.uid });
         } else {
-            result = await postOpportunity(formData);
+            result = await postOpportunity({ ...formData, postedBy: user.uid });
         }
 
         if (result.success) {
@@ -421,9 +421,12 @@ function AdminApplicationsView({ jobs }) {
         setLoadingApps(false);
     };
 
-    // Group applications by jobId
+    // Group applications by jobId and filter by visible jobs
+    const visibleJobIds = new Set(jobs.map(j => j.id));
+    const filteredApplications = applications.filter(app => visibleJobIds.has(app.jobId));
+    
     const appsByJob = {};
-    applications.forEach(app => {
+    filteredApplications.forEach(app => {
         if (!appsByJob[app.jobId]) appsByJob[app.jobId] = [];
         appsByJob[app.jobId].push(app);
     });
@@ -606,17 +609,19 @@ function AdminApplicationsView({ jobs }) {
         );
     }
 
-    const totalApplicants = applications.length;
-    const shortlisted = applications.filter(a => a.status === 'Shortlisted').length;
-    const hired = applications.filter(a => a.status === 'Hired').length;
+    const totalApplicants = filteredApplications.length;
+    const shortlisted = filteredApplications.filter(a => a.status === 'Shortlisted').length;
+    const interviewScheduled = filteredApplications.filter(a => a.status === 'Interview Scheduled').length;
+    const hired = filteredApplications.filter(a => a.status === 'Hired').length;
 
     return (
         <div>
             {/* Summary stats */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 {[
                     { label: 'Total Applications', value: totalApplicants, color: 'bg-indigo-50 text-indigo-700' },
                     { label: 'Shortlisted', value: shortlisted, color: 'bg-amber-50 text-amber-700' },
+                    { label: 'Interview Scheduled', value: interviewScheduled, color: 'bg-blue-50 text-blue-700' },
                     { label: 'Hired', value: hired, color: 'bg-emerald-50 text-emerald-700' },
                 ].map(stat => (
                     <div key={stat.label} className={`rounded-2xl p-5 ${stat.color}`}>

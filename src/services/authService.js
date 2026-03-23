@@ -6,6 +6,10 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   sendEmailVerification,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+  updateEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseConfig';
@@ -242,6 +246,12 @@ export const setupAuthListener = (callback) => {
     if (isRegistering) return;
 
     if (firebaseUser) {
+      // Handle anonymous users (used for public read access to some collections)
+      if (firebaseUser.isAnonymous) {
+        callback(null); // The app should still see them as logged out for UI purposes
+        return;
+      }
+
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       if (userDoc.exists()) {
         const userData = userDoc.data();
@@ -297,4 +307,44 @@ export const setupAuthListener = (callback) => {
       callback(null);
     }
   });
+};
+
+/**
+ * Re-authenticates a user using their current password, then updates their email and/or password.
+ */
+export const updateSecurityCredentials = async (currentPassword, newEmail, newPassword) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) return { success: false, error: "No user is currently signed in." };
+
+    // 1. Re-authenticate
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+
+    // 2. Update Email if provided and different
+    if (newEmail && newEmail !== user.email) {
+      await updateEmail(user, newEmail);
+      // Also update email in Firestore 'users' collection
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, { email: newEmail });
+    }
+
+    // 3. Update Password if provided
+    if (newPassword) {
+      await updatePassword(user, newPassword);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Update credentials error:', error);
+    let errorMessage = error.message;
+    if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+      errorMessage = "The current password provided is incorrect.";
+    } else if (error.code === 'auth/requires-recent-login') {
+      errorMessage = "Please log out and log back in to perform this action.";
+    } else if (error.code === 'auth/email-already-in-use') {
+      errorMessage = "This email is already registered to another account.";
+    }
+    return { success: false, error: errorMessage };
+  }
 };
