@@ -20,6 +20,8 @@ export default function Home() {
   const { user, loading: authLoading } = useAuthStore();
   const navigate = useNavigate();
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   // Auto-redirect to dashboard if already logged in
   useEffect(() => {
     if (!authLoading && user && user.role) {
@@ -40,23 +42,25 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 overflow-x-hidden">
 
-      {/* Navigation Bar (Inline for now, could be extracted) */}
+      {/* Navigation Bar */}
       <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
-              <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+              <span className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
                 Placement<span className="text-gray-700">Cell</span>
               </span>
             </div>
-            <div className="flex items-center space-x-4">
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-4">
               {!user ? (
                 <>
                   <button
                     onClick={() => navigate('/login')}
-                    className="text-gray-600 hover:text-blue-600 font-medium px-3 py-2 transition-colors hidden sm:block"
+                    className="text-gray-600 hover:text-blue-600 font-medium px-3 py-2 transition-colors"
                   >
                     Student Login
                   </button>
@@ -81,8 +85,54 @@ export default function Home() {
                 </button>
               )}
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                {isMobileMenuOpen ? '✕' : '☰'}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Navigation Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white border-b border-gray-200 animate-slideDown">
+            <div className="px-4 pt-2 pb-6 space-y-2">
+              {!user ? (
+                <>
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="block w-full text-left px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg"
+                  >
+                    Student Login
+                  </button>
+                  <button
+                    onClick={() => navigate('/register')}
+                    className="block w-full text-center bg-blue-600 text-white px-4 py-3 rounded-xl font-bold shadow-md"
+                  >
+                    Register Now
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (user?.role === 'admin') navigate('/admin');
+                    else if (user?.role === 'recruiter') navigate('/recruiter');
+                    else if (user?.role === 'coordinator') navigate('/coordinator');
+                    else navigate('/student');
+                  }}
+                  className="block w-full text-center bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold shadow-md"
+                >
+                  Go to Dashboard
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </nav>
 
       <main className="flex-grow">

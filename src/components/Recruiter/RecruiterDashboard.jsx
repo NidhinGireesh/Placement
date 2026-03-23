@@ -19,6 +19,7 @@ export default function RecruiterDashboard() {
   const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Company profile state
   const [companyProfile, setCompanyProfile] = useState({
@@ -362,12 +363,36 @@ export default function RecruiterDashboard() {
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans">
+    <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
+      {/* Mobile Hamburger Button */}
+      <div className="md:hidden fixed top-4 left-4 z-50">
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 rounded-lg bg-white shadow-md text-gray-600 hover:text-blue-600 focus:outline-none"
+        >
+          {isMobileMenuOpen ? (
+            <span className="text-2xl">✕</span>
+          ) : (
+            <span className="text-2xl">☰</span>
+          )}
+        </button>
+      </div>
+
+      {/* Overlay for mobile menu */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        ></div>
+      )}
+
       {/* Sidebar */}
       <aside
         className={`
+          fixed md:static inset-y-0 left-0 z-40 
           ${isSidebarOpen ? 'w-64' : 'w-20'} 
-          bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col shadow-sm z-20
+          bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col shadow-sm
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
       >
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-100">
@@ -394,7 +419,10 @@ export default function RecruiterDashboard() {
             {navItems.map((item) => (
               <li key={item.id}>
                 <button
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setIsMobileMenuOpen(false);
+                  }}
                   className={`
                     flex items-center w-full px-3 py-3 rounded-xl transition-all duration-200 group relative
                     ${activeTab === item.id
@@ -441,7 +469,7 @@ export default function RecruiterDashboard() {
       {/* Main Content Area */}
       <main className="flex-1 overflow-hidden flex flex-col bg-gray-50/50">
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-20 md:pt-8 custom-scrollbar">
           {notification && (
             <div className={`fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 text-white animate-fadeIn ${notification.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>
               {notification.message}

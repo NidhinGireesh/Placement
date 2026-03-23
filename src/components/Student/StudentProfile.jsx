@@ -170,7 +170,7 @@ export default function StudentProfile() {
   }
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
+    <div className="bg-white p-4 sm:p-8 rounded-xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
       <div className="flex justify-end items-center mb-8 pb-4 border-b border-gray-100">
         <button
           onClick={() => setIsEditing(!isEditing)}

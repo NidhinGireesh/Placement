@@ -110,15 +110,15 @@ export default function PlacementChart() {
                     <div className="flex flex-col md:flex-row items-center justify-around gap-12 mt-4">
 
                         {/* Full-Donut Gauge Chart */}
-                        <div className="w-full md:w-1/2 h-72 relative flex flex-col items-center justify-center group">
+                        <div className="w-full md:w-1/2 h-64 sm:h-72 relative flex flex-col items-center justify-center group">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
                                         data={data}
                                         cx="50%"
                                         cy="50%"
-                                        innerRadius={100}
-                                        outerRadius={140}
+                                        innerRadius={window.innerWidth < 640 ? 70 : 100}
+                                        outerRadius={window.innerWidth < 640 ? 100 : 140}
                                         paddingAngle={5}
                                         dataKey="value"
                                         stroke="none"

@@ -118,7 +118,7 @@ export default function CoordinatorDashboard() {
         />
       </div>
 
-      <main className="flex-1 p-8 overflow-y-auto w-full pt-16 md:pt-8 bg-gray-50/50">
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto w-full pt-20 md:pt-8 bg-gray-50/50">
         <div className="max-w-7xl mx-auto">
           {/* Unified Top Header */}
           <header className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4 border-b border-gray-200/50 pb-6 relative">
