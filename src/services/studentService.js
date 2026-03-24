@@ -143,12 +143,13 @@ export const updateStudentProfile = async (userId, profileData) => {
             return { success: false, error: 'Student record not found to update.' };
         }
 
-        // 2. Update 'users' collection (for shared fields like name)
-        // Note: Email is usually not editable directly without re-authentication flows
+        // 2. Update 'users' collection (for shared and fast-access fields)
         const userRef = doc(db, 'users', userId);
         await updateDoc(userRef, {
             name: profileData.name,
-            phone: profileData.phone
+            phone: profileData.phone,
+            cgpa: profileData.cgpa || 0,
+            backlogs: profileData.backlogs !== undefined && profileData.backlogs !== '' ? parseInt(profileData.backlogs, 10) : 0
         });
 
         return { success: true };

@@ -60,15 +60,6 @@ export const getTargetedJobs = async (branch, batch) => {
         // Filter and Sort Client Side
         const targetedJobs = allJobs
             .filter(job => job.status === 'active')
-            .filter(job => {
-                // Ensure targetBranches and targetYears exist
-                const targetBranches = job.targetBranches || ['All'];
-                const targetYears = job.targetYears || ['All'];
-
-                const branchMatch = targetBranches.includes('All') || targetBranches.includes(branch);
-                const yearMatch = targetYears.includes('All') || targetYears.includes(batch);
-                return branchMatch && yearMatch;
-            })
             .sort((a, b) => {
                 const dateA = a.createdAt?.seconds || 0;
                 const dateB = b.createdAt?.seconds || 0;
@@ -197,6 +188,29 @@ export const getApplicationsForRecruiter = async (recruiterId) => {
             ...doc.data()
         }));
         
+        // Enrich applications with latest student profile data for accuracy
+        const enrichedApps = await Promise.all(apps.map(async (app) => {
+            if (!app.studentId) return app;
+            try {
+                // Fetch from 'students' collection as it's the primary source of truth for CGPA
+                const studentsRef = collection(db, 'students');
+                const q = query(studentsRef, where('userId', '==', app.studentId));
+                const studentSnap = await getDocs(q);
+                
+                if (!studentSnap.empty) {
+                    const studentData = studentSnap.docs[0].data();
+                    return {
+                        ...app,
+                        cgpa: studentData.cgpa !== undefined ? studentData.cgpa : (app.cgpa || 0),
+                        backlogs: studentData.backlogs !== undefined ? studentData.backlogs : (app.backlogs || 0)
+                    };
+                }
+            } catch (err) {
+                console.error('Error enriching app:', err);
+            }
+            return app;
+        }));
+
         const safeSortApps = (a, b) => {
             const getMs = (date) => {
                 if (!date) return 0;
@@ -206,9 +220,9 @@ export const getApplicationsForRecruiter = async (recruiterId) => {
             };
             return getMs(b.appliedAt) - getMs(a.appliedAt);
         };
-        apps.sort(safeSortApps);
+        enrichedApps.sort(safeSortApps);
         
-        return { success: true, data: apps };
+        return { success: true, data: enrichedApps };
     } catch (error) {
         console.error('Error getting applications:', error);
         return { success: false, error: error.message };
@@ -244,7 +258,7 @@ export const getApplicationsForStudent = async (studentId) => {
             return {
                 id: docSnap.id,
                 ...data,
-                jobTitle: jobData.title,
+                jobTitle: jobData.role || jobData.title || 'Unknown Role',
                 company: jobData.company,
                 location: jobData.location || 'Not Specified',
                 type: jobData.type || 'Full-time'
@@ -284,7 +298,30 @@ export const getAllApplications = async () => {
     try {
         const querySnapshot = await getDocs(collection(db, APPLICATIONS_COLLECTION));
         const apps = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        return { success: true, data: apps };
+
+        // Enrich for Admin view as well
+        const enrichedApps = await Promise.all(apps.map(async (app) => {
+            if (!app.studentId) return app;
+            try {
+                const studentsRef = collection(db, 'students');
+                const q = query(studentsRef, where('userId', '==', app.studentId));
+                const studentSnap = await getDocs(q);
+                
+                if (!studentSnap.empty) {
+                    const studentData = studentSnap.docs[0].data();
+                    return {
+                        ...app,
+                        cgpa: studentData.cgpa !== undefined ? studentData.cgpa : (app.cgpa || 0),
+                        backlogs: studentData.backlogs !== undefined ? studentData.backlogs : (app.backlogs || 0)
+                    };
+                }
+            } catch (err) {
+                console.error('Error enriching admin app:', err);
+            }
+            return app;
+        }));
+
+        return { success: true, data: enrichedApps };
     } catch (error) {
         console.error('Error fetching all applications:', error);
         return { success: false, error: error.message };

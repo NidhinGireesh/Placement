@@ -6,9 +6,16 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 const COLORS = ['#005ff9ff', '#006910ff', '#f90101ff', '#f99901ff', '#fffb00ff', '#fd007fff'];
 
 export default function PlacementChart() {
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeIndex, setActiveIndex] = useState(-1);
+
+    useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         const fetchPlacements = async () => {
@@ -117,8 +124,8 @@ export default function PlacementChart() {
                                         data={data}
                                         cx="50%"
                                         cy="50%"
-                                        innerRadius={window.innerWidth < 640 ? 70 : 100}
-                                        outerRadius={window.innerWidth < 640 ? 100 : 140}
+                                        innerRadius={windowWidth < 640 ? 70 : 100}
+                                        outerRadius={windowWidth < 640 ? 100 : 140}
                                         paddingAngle={5}
                                         dataKey="value"
                                         stroke="none"

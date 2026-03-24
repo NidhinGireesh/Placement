@@ -109,7 +109,7 @@ export default function AdminDashboard() {
       <aside
         className={`
           fixed md:static inset-y-0 left-0 z-40 
-          ${isSidebarOpen ? 'w-64' : 'w-20'} 
+          w-64 ${isSidebarOpen ? 'md:w-64' : 'md:w-20'} 
           bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col shadow-sm
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}

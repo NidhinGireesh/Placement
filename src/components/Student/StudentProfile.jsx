@@ -150,7 +150,14 @@ export default function StudentProfile() {
 
       if (result.success) {
         // Update local auth store so header/sidebar updates immediately
-        setUser({ ...user, name: formData.name, phone: formData.phone });
+        // Update local auth store so other components like JobBoard get the latest data immediately
+        setUser({ 
+          ...user, 
+          name: formData.name, 
+          phone: formData.phone,
+          cgpa: formData.cgpa,
+          backlogs: formData.backlogs
+        });
 
         setIsEditing(false);
         alert('Profile updated successfully!');

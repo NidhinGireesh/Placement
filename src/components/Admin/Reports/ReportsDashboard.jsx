@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getUsersByRoles, addNotification, getAdminNotifications, deleteNotification } from '../../../services/adminService';
-import { getAllApplications, getAllJobs } from '../../../services/jobService';
+import { postOpportunity, getAllJobs, deleteJob, updateJob, getAllApplications, updateApplicationStatus } from '../../../services/jobService';
+import { formatDate } from '../../../utils/dateUtils';
 
 export default function ReportsDashboard() {
     const [activeTab, setActiveTab] = useState('communication');
@@ -155,7 +156,7 @@ function CommunicationForm({ availableClasses }) {
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Recipient Group</label>
+                            <label className="block text-sm font-medium text-slate-900 mb-1">Recipient Group</label>
                             <select 
                                 value={recipient}
                                 onChange={(e) => setRecipient(e.target.value)}
@@ -168,7 +169,7 @@ function CommunicationForm({ availableClasses }) {
                         </div>
                         {showClassFilter && (
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Target Class</label>
+                                <label className="block text-sm font-medium text-slate-900 mb-1">Target Class</label>
                                 <select 
                                     value={targetClass}
                                     onChange={(e) => setTargetClass(e.target.value)}
@@ -182,7 +183,7 @@ function CommunicationForm({ availableClasses }) {
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Subject</label>
+                        <label className="block text-sm font-medium text-slate-900 mb-1">Subject</label>
                         <input 
                             type="text" 
                             value={subject}
@@ -193,7 +194,7 @@ function CommunicationForm({ availableClasses }) {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Message Content</label>
+                        <label className="block text-sm font-medium text-slate-900 mb-1">Message Content</label>
                         <textarea 
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
@@ -247,7 +248,7 @@ function CommunicationForm({ availableClasses }) {
                                     <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">
                                         {msg.recipientGroup} {msg.targetClass && msg.targetClass !== 'All Classes' ? `(${msg.targetClass})` : ''}
                                     </span>
-                                    <span>{new Date(msg.createdAt).toLocaleDateString()}</span>
+                                    <span>{formatDate(msg.createdAt)}</span>
                                 </div>
                                 <p className="text-sm text-slate-600 line-clamp-3 whitespace-pre-wrap">{msg.message}</p>
                             </div>

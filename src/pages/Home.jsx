@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
@@ -28,6 +28,17 @@ export default function Home() {
       navigate(`/${user.role}`, { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  // Handle resizing to close mobile menu on desktop transition
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   if (authLoading) {
     return (

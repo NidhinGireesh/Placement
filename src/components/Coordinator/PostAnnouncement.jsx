@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../config/firebaseConfig';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { formatDate } from '../../utils/dateUtils';
 
 const PostAnnouncement = ({ onSuccess, editData }) => {
     const [announcements, setAnnouncements] = useState([]);
@@ -67,7 +68,7 @@ const PostAnnouncement = ({ onSuccess, editData }) => {
                     target: formData.target,
                     deadline: formData.deadline,
                     createdAt: serverTimestamp(),
-                    date: new Date().toLocaleDateString()
+                    date: formatDate(new Date())
                 });
             }
 
@@ -126,7 +127,7 @@ const PostAnnouncement = ({ onSuccess, editData }) => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Announcement Title</label>
+                        <label className="block text-sm font-medium text-slate-900 mb-1">Announcement Title</label>
                         <input
                             type="text"
                             name="title"
@@ -139,7 +140,7 @@ const PostAnnouncement = ({ onSuccess, editData }) => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <label className="block text-sm font-medium text-slate-900 mb-1">Description</label>
                         <textarea
                             name="description"
                             value={formData.description}
@@ -153,7 +154,7 @@ const PostAnnouncement = ({ onSuccess, editData }) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Target Audience</label>
+                            <label className="block text-sm font-medium text-slate-900 mb-1">Target Audience</label>
                             <select
                                 name="target"
                                 value={formData.target}
@@ -169,7 +170,7 @@ const PostAnnouncement = ({ onSuccess, editData }) => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Deadline (Optional)</label>
+                            <label className="block text-sm font-medium text-slate-900 mb-1">Deadline (Optional)</label>
                             <input
                                 type="date"
                                 name="deadline"

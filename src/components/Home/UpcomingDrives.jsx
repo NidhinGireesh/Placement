@@ -77,7 +77,7 @@ export default function UpcomingDrives() {
 
                                 <div className="space-y-2 mb-2">
                                     <p className="text-gray-600 text-sm flex items-center gap-2">
-                                        <span className="font-bold text-gray-800">Role:</span> {drive.role}
+                                        <span className="font-bold text-gray-800">Role:</span> {drive.role || drive.title}
                                     </p>
                                     <p className="text-gray-600 text-sm flex items-center gap-2">
                                         <span className="font-bold text-gray-800">Deadline:</span> {drive.deadline}

@@ -204,13 +204,15 @@ const DashboardOverview = ({ setActiveTab, setStudentFilter }) => {
                                             <div className="h-12 w-12 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
                                                 🏢
                                             </div>
-                                            <div>
-                                                <h4 className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">
-                                                    New Job Posted: {job.title}
+                                            <div className="flex-1">
+                                                <h4 className="text-lg font-black text-gray-800 group-hover:text-blue-600 transition-all tracking-tight leading-tight">
+                                                    {job.role || job.title}
                                                 </h4>
-                                                <p className="text-xs text-gray-500 mt-1 font-medium">
-                                                    {job.company} • {job.location || 'Multiple Locations'}
-                                                </p>
+                                                <div className="flex items-center gap-2 mt-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                                    <span className="text-blue-600">{job.company}</span>
+                                                    <span className="text-slate-300">•</span>
+                                                    <span>{job.location || 'Multiple Locations'}</span>
+                                                </div>
                                             </div>
                                         </div>
                                         <button

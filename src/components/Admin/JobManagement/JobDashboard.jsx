@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { postOpportunity, getAllJobs, deleteJob, updateJob, getAllApplications, updateApplicationStatus } from '../../../services/jobService';
+import { useAuthStore } from '../../../store/authStore';
+import { formatDate } from '../../../utils/dateUtils';
 
 export default function JobDashboard({ filterType = 'All' }) {
     const [activeTab, setActiveTab] = useState('listings');
@@ -145,15 +147,27 @@ function JobListings({ jobs, onDelete, onEdit }) {
                                 {job.type}
                             </span>
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors">{job.role}</h3>
-                        <p className="text-slate-600 font-semibold mb-6 flex items-center gap-2">
-                            {job.company}
-                        </p>
+                        <h3 className="text-2xl font-black text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors tracking-tight">{job.role || job.title}</h3>
+                        <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest mb-6">
+                            <span className="text-indigo-600">{job.company}</span>
+                            <span className="text-slate-200">•</span>
+                            <span>{job.location || 'Location Not Specified'}</span>
+                        </div>
 
                         <div className="space-y-3 pt-6 border-t border-slate-100 text-sm font-medium text-slate-500">
                             <div className="flex items-center gap-3">
                                 <span className="w-5 text-center">💰</span>
                                 <span className="text-slate-700">{job.package}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <span className="w-5 text-center">📈</span>
+                                    <span className="text-slate-700">Min CGPA: {job.minCgpa || job.cgpa || '0'}</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="w-5 text-center">⚠️</span>
+                                    <span className="text-slate-700">Max Backlogs: {job.maxBacklogs || '0'}</span>
+                                </div>
                             </div>
                             <div className="flex items-center gap-3">
                                 <span className="w-5 text-center">🏢</span>
@@ -187,13 +201,18 @@ function JobListings({ jobs, onDelete, onEdit }) {
 }
 
 function CreateJobForm({ onSuccess, defaultType = 'Job', initialData = null, onCancel }) {
+    const { user } = useAuthStore();
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         company: '',
         role: '',
         type: defaultType === 'All' ? 'Job' : defaultType,
         package: '',
-        cgpa: '0',
+        location: '',
+        minCgpa: '0',
+        maxBacklogs: '0',
         description: '',
+        selectionProcess: '',
         applyLink: '',
         deadline: '',
         targetBranches: ['All'],
@@ -204,15 +223,19 @@ function CreateJobForm({ onSuccess, defaultType = 'Job', initialData = null, onC
         if (initialData) {
             setFormData({
                 ...initialData,
+                role: initialData.role || initialData.title || '',
+                package: initialData.package || initialData.packageDetails || '',
+                minCgpa: initialData.minCgpa || initialData.cgpa || '0',
+                maxBacklogs: initialData.maxBacklogs || '0',
+                location: initialData.location || '',
+                selectionProcess: initialData.selectionProcess || '',
                 deadline: initialData.deadline || ''
             });
         }
     }, [initialData]);
 
-    const [loading, setLoading] = useState(false);
-
-    const branches = ['All', 'CSE', 'ECE', 'MECH', 'EEE', 'IT', 'RAI'];
-    const batches = ['All', '2024', '2025', '2026', '2027', '2028', '2029'];
+    const branches = ['CSE', 'ECE', 'MECH', 'EEE', 'IT', 'RAI'];
+    const batches = ['2024', '2025', '2026', '2027', '2028', '2029'];
 
     const handleCheckboxChange = (type, value) => {
         setFormData(prev => {
@@ -222,10 +245,10 @@ function CreateJobForm({ onSuccess, defaultType = 'Job', initialData = null, onC
                 next = current.includes('All') ? [] : ['All'];
             } else {
                 next = current.includes(value)
-                    ? current.filter(i => i !== value)
-                    : [...current.filter(i => i !== 'All'), value];
-                if (next.length === 0) next = ['All'];
+                    ? current.filter(item => item !== value)
+                    : [...current.filter(item => item !== 'All'), value];
             }
+            if (next.length === 0) next = ['All'];
             return { ...prev, [type]: next };
         });
     };
@@ -250,118 +273,133 @@ function CreateJobForm({ onSuccess, defaultType = 'Job', initialData = null, onC
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden max-w-4xl">
-            <div className="p-8 bg-indigo-600 text-white flex justify-between items-center">
-                <div>
-                    <h3 className="text-2xl font-bold">{initialData ? 'Edit Opportunity' : 'Post New Opportunity'}</h3>
-                    <p className="opacity-80">{initialData ? 'Update the details below.' : 'Fill in the details to broadcast this to eligible students.'}</p>
+        <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden max-w-4xl mx-auto mb-10">
+            <div className="p-10 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 text-white flex justify-between items-center relative overflow-hidden">
+                <div className="relative z-10">
+                    <h3 className="text-3xl font-black tracking-tight">{initialData ? 'Edit Opportunity' : 'Post New Opportunity'}</h3>
+                    <p className="opacity-90 font-medium mt-1">Fill in the exhaustive details for better student targeting.</p>
                 </div>
                 {initialData && (
                     <button
                         onClick={onCancel}
-                        className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-bold transition-colors"
+                        className="px-6 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl text-sm font-black uppercase tracking-widest transition-all relative z-10 border border-white/10"
                     >
-                        Cancel Edit
+                        Cancel
                     </button>
                 )}
+                <div className="absolute right-0 top-0 text-9xl opacity-10 translate-x-1/4 -translate-y-1/4 pointer-events-none">💼</div>
             </div>
-            <form onSubmit={handleSubmit} className="p-8 space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Company Name</label>
-                        <input
-                            type="text"
-                            required
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all"
-                            placeholder="e.g. Google"
-                            value={formData.company}
-                            onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                        />
+
+            <form onSubmit={handleSubmit} className="p-10 space-y-10">
+                {/* Section: Basic Info */}
+                <div className="space-y-6">
+                    <div className="flex items-center gap-3 mb-2">
+                        <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">01</span>
+                        <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest">Basic Information</h4>
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Position Title</label>
-                        <input
-                            type="text"
-                            required
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all"
-                            placeholder="e.g. Full Stack Developer"
-                            value={formData.role}
-                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest px-1">Company Name</label>
+                            <input
+                                type="text"
+                                required
+                                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                                placeholder="e.g. Google"
+                                value={formData.company}
+                                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Role / Position</label>
+                            <input
+                                type="text"
+                                required
+                                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                                placeholder="e.g. Software Engineer"
+                                value={formData.role}
+                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Offer Category</label>
+                            <select
+                                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700 appearance-none cursor-pointer"
+                                value={formData.type}
+                                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                            >
+                                <option value="Job">Full Time Job</option>
+                                <option value="Internship">Internship Training</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Location</label>
+                            <input
+                                type="text"
+                                required
+                                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                                placeholder="e.g. Remote or Bangalore"
+                                value={formData.location}
+                                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                            />
+                        </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Offer Category</label>
-                        <select
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer"
-                            value={formData.type}
-                            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                        >
-                            <option value="Job">Full Time Job</option>
-                            <option value="Internship">Internship Training</option>
-                        </select>
+                {/* Section: Eligibility */}
+                <div className="space-y-6">
+                    <div className="flex items-center gap-3 mb-2">
+                        <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">02</span>
+                        <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest">Eligibility & Package</h4>
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Financial Package</label>
-                        <input
-                            type="text"
-                            required
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all"
-                            placeholder="e.g. 10 LPA or 40k/month"
-                            value={formData.package}
-                            onChange={(e) => setFormData({ ...formData, package: e.target.value })}
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Job Description</label>
-                    <textarea
-                        required
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all min-h-[120px]"
-                        placeholder="Detail the role, responsibilities, and key requirements..."
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    ></textarea>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Direct Application Link</label>
-                        <input
-                            type="url"
-                            required
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all"
-                            placeholder="https://company.com/careers/job-123"
-                            value={formData.applyLink}
-                            onChange={(e) => setFormData({ ...formData, applyLink: e.target.value })}
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Application Deadline</label>
-                        <input
-                            type="date"
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all"
-                            value={formData.deadline}
-                            onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Financial Package</label>
+                            <input
+                                type="text"
+                                required
+                                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                                placeholder="e.g. 12 LPA"
+                                value={formData.package}
+                                onChange={(e) => setFormData({ ...formData, package: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Min CGPA</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                required
+                                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                                value={formData.minCgpa}
+                                onChange={(e) => setFormData({ ...formData, minCgpa: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Max Backlogs</label>
+                            <input
+                                type="number"
+                                required
+                                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                                value={formData.maxBacklogs}
+                                onChange={(e) => setFormData({ ...formData, maxBacklogs: e.target.value })}
+                            />
+                        </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+                {/* Section: Targets */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
                     <div className="space-y-4">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Target Departments</label>
-                        <div className="flex flex-wrap gap-3">
+                        <label className="text-xs font-black text-indigo-900 uppercase tracking-widest px-1">Target Departments</label>
+                        <div className="flex flex-wrap gap-2">
                             {branches.map(b => (
                                 <button
                                     key={b}
                                     type="button"
                                     onClick={() => handleCheckboxChange('targetBranches', b)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${formData.targetBranches.includes(b)
-                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                    className={`px-4 py-2.5 rounded-xl text-[11px] font-black tracking-widest transition-all border ${formData.targetBranches.includes(b)
+                                        ? 'bg-indigo-600 text-white border-transparent shadow-lg shadow-indigo-100 scale-105'
+                                        : 'bg-white text-slate-400 border-slate-100 hover:border-indigo-200 hover:text-indigo-400'
                                         }`}
                                 >
                                     {b}
@@ -370,16 +408,16 @@ function CreateJobForm({ onSuccess, defaultType = 'Job', initialData = null, onC
                         </div>
                     </div>
                     <div className="space-y-4">
-                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Eligible Batches</label>
-                        <div className="flex flex-wrap gap-3">
+                        <label className="text-xs font-black text-indigo-900 uppercase tracking-widest px-1">Eligible Batches</label>
+                        <div className="flex flex-wrap gap-2">
                             {batches.map(b => (
                                 <button
                                     key={b}
                                     type="button"
                                     onClick={() => handleCheckboxChange('targetYears', b)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${formData.targetYears.includes(b)
-                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                    className={`px-4 py-2.5 rounded-xl text-[11px] font-black tracking-widest transition-all border ${formData.targetYears.includes(b)
+                                        ? 'bg-indigo-600 text-white border-transparent shadow-lg shadow-indigo-100 scale-105'
+                                        : 'bg-white text-slate-400 border-slate-100 hover:border-indigo-200 hover:text-indigo-400'
                                         }`}
                                 >
                                     {b}
@@ -389,14 +427,79 @@ function CreateJobForm({ onSuccess, defaultType = 'Job', initialData = null, onC
                     </div>
                 </div>
 
-                <div className="flex justify-end items-center gap-6 pt-10 border-t border-slate-100">
-                    <p className="text-slate-400 text-sm italic">Double check all details before saving.</p>
+                {/* Section: Details & Selection */}
+                <div className="space-y-10">
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">03</span>
+                            <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest">Job Details & Selection</h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Application Deadline</label>
+                                <input
+                                    type="date"
+                                    required
+                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                                    value={formData.deadline}
+                                    onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Direct Apply Link (Optional)</label>
+                                <input
+                                    type="url"
+                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                                    placeholder="https://company.com/direct-apply"
+                                    value={formData.applyLink}
+                                    onChange={(e) => setFormData({ ...formData, applyLink: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1 uppercase mb-2 block">Job Description & Requirements</label>
+                                <textarea
+                                    required
+                                    rows="6"
+                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-medium text-slate-700 resize-none"
+                                    placeholder="Role details, responsibilities..."
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                ></textarea>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest px-1 uppercase mb-2 block">Selection Process (Venue, Date, Time)</label>
+                                <textarea
+                                    rows="6"
+                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-medium text-slate-700 resize-none"
+                                    placeholder="Interview rounds, dates, venue..."
+                                    value={formData.selectionProcess}
+                                    onChange={(e) => setFormData({ ...formData, selectionProcess: e.target.value })}
+                                ></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-10 border-t border-slate-100">
+                    <div className="flex items-center gap-3 text-slate-400 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100">
+                        <span className="animate-pulse">⚠️</span>
+                        <p className="text-[10px] font-black uppercase tracking-widest">Double check details before broadcast</p>
+                    </div>
                     <button
                         type="submit"
                         disabled={loading}
-                        className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-indigo-700 shadow-xl shadow-indigo-200 hover:shadow-indigo-300 transition-all disabled:opacity-50 active:scale-95"
+                        className="w-full md:w-auto bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-indigo-700 shadow-2xl shadow-indigo-100 hover:shadow-indigo-200 transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center gap-3"
                     >
-                        {loading ? 'Processing...' : (initialData ? 'Save Changes' : 'Broadcast Opportunity')}
+                        {loading ? (
+                            <>
+                                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                <span>Processing...</span>
+                            </>
+                        ) : (
+                            <span>{initialData ? 'Update & Sync' : 'Broadcast to Campus'}</span>
+                        )}
                     </button>
                 </div>
             </form>
@@ -454,7 +557,7 @@ function AdminApplicationsView({ jobs }) {
             app.backlogs ?? '',
             app.status || 'Applied',
             app.resumeUrl || '',
-            app.appliedAt?.toDate ? app.appliedAt.toDate().toLocaleDateString() : ''
+            formatDate(app.appliedAt)
         ]);
         const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
@@ -648,7 +751,7 @@ function AdminApplicationsView({ jobs }) {
                                     {job.type}
                                 </span>
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-700 transition-colors mb-1">{job.role}</h3>
+                            <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-700 transition-colors mb-1">{job.role || job.title}</h3>
                             <p className="text-sm text-slate-500 font-semibold mb-4">{job.company}</p>
                             <div className="flex items-center justify-between border-t border-slate-100 pt-4">
                                 <span className="text-sm text-slate-500">{job.package}</span>

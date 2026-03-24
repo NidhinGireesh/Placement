@@ -74,9 +74,9 @@ export default function JobBoard() {
 
         const result = await applyForJob(job.id, recruiterId, user.uid, {
             name: user.name,
-            course: user.department || user.branch || '',
-            cgpa: user.cgpa || '',
-            backlogs: user.backlogs || 0,
+            course: user.department || user.branch || profileResult.branch || '',
+            cgpa: profileResult.cgpa || user.cgpa || 0,
+            backlogs: profileResult.backlogs !== undefined ? profileResult.backlogs : (user.backlogs || 0),
             resumeUrl,
             photoUrl
         });
@@ -142,8 +142,12 @@ export default function JobBoard() {
                                         {job.type === 'Internship' ? '🎓' : '💼'}
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight">{job.role}</h3>
-                                        <p className="text-indigo-600 font-bold text-sm tracking-wide uppercase mt-1">{job.company}</p>
+                                        <h3 className="text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight tracking-tight">{job.role || job.title}</h3>
+                                        <div className="flex items-center gap-2 mt-1.5">
+                                            <p className="text-indigo-600 font-black text-[10px] tracking-widest uppercase">{job.company}</p>
+                                            <span className="text-slate-200">•</span>
+                                            <p className="text-slate-400 font-black text-[10px] tracking-widest uppercase">{job.location || 'Location Not Specified'}</p>
+                                        </div>
                                     </div>
                                 </div>
                                 <span className={`px-3 py-1 text-[10px] font-black rounded-full tracking-widest uppercase shadow-sm ${job.type === 'Internship' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
@@ -226,7 +230,7 @@ export default function JobBoard() {
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
-                                        <h2 className="text-3xl font-bold text-slate-900">{selectedJob.role}</h2>
+                                        <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">{selectedJob.role || selectedJob.title}</h3>
                                         <span className={`px-4 py-1.5 text-xs font-black rounded-full tracking-widest uppercase ${selectedJob.type === 'Internship' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                                             {selectedJob.type}
                                         </span>
@@ -272,42 +276,57 @@ export default function JobBoard() {
                                             </div>
                                         </section>
                                     )}
+
+                                    {selectedJob.selectionProcess && (
+                                        <section>
+                                            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                                <span className="text-indigo-500">🏢</span> Selection Process
+                                            </h3>
+                                            <div className="bg-indigo-50/30 border border-indigo-100 p-6 rounded-2xl text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                                {selectedJob.selectionProcess}
+                                            </div>
+                                        </section>
+                                    )}
                                 </div>
 
                                 <div className="space-y-6">
-                                    <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100/50">
-                                        <h3 className="text-sm font-bold text-indigo-900 mb-4 uppercase tracking-wider">Eligibility Criteria</h3>
-                                        <div className="space-y-4">
-                                            {selectedJob.minCgpa && selectedJob.minCgpa !== '' && (
-                                                <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-indigo-100">
-                                                    <span className="text-sm font-semibold text-slate-600">Min CGPA</span>
-                                                    <span className="font-bold text-indigo-700">{selectedJob.minCgpa}</span>
+                                    <div className="space-y-6">
+                                        <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
+                                            <h3 className="text-lg font-black text-indigo-900 mb-6 uppercase tracking-tight">
+                                                Eligibility Criteria
+                                            </h3>
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-50 flex justify-between items-center group hover:border-indigo-200 transition-all">
+                                                        <span className="text-slate-600 font-bold">Min CGPA</span>
+                                                        <span className="text-2xl font-black text-indigo-600">{selectedJob.minCgpa || selectedJob.cgpa || '0'}</span>
+                                                    </div>
+                                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-50 flex justify-between items-center group hover:border-indigo-200 transition-all">
+                                                        <span className="text-slate-600 font-bold">Max Backlogs</span>
+                                                        <span className="text-2xl font-black text-indigo-600">{selectedJob.maxBacklogs || '0'}</span>
+                                                    </div>
                                                 </div>
-                                            )}
-                                            {selectedJob.maxBacklogs && selectedJob.maxBacklogs !== '' && (
-                                                <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-indigo-100">
-                                                    <span className="text-sm font-semibold text-slate-600">Max Backlogs</span>
-                                                    <span className="font-bold text-indigo-700">{selectedJob.maxBacklogs}</span>
+
+                                                <div className="pt-4">
+                                                    <p className="text-[10px] text-indigo-400 font-black mb-3 uppercase tracking-widest px-1">Eligible Branches</p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {selectedJob.targetBranches?.map((branch, idx) => (
+                                                            <span key={idx} className="bg-white text-indigo-600 text-[11px] font-black px-4 py-2 rounded-xl border border-indigo-50 shadow-sm uppercase">
+                                                                {branch}
+                                                            </span>
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                            )}
-                                            <div>
-                                                <p className="text-xs text-indigo-400 font-semibold mb-2 uppercase">Eligible Branches</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {selectedJob.targetBranches?.map((branch, idx) => (
-                                                        <span key={idx} className="bg-white text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-100">
-                                                            {branch}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-indigo-400 font-semibold mb-2 uppercase">Eligible Batches</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {selectedJob.targetYears?.map((year, idx) => (
-                                                        <span key={idx} className="bg-white text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-100">
-                                                            {year}
-                                                        </span>
-                                                    ))}
+
+                                                <div className="pt-2">
+                                                    <p className="text-[10px] text-indigo-400 font-black mb-3 uppercase tracking-widest px-1">Eligible Batches</p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {selectedJob.targetYears?.map((year, idx) => (
+                                                            <span key={idx} className="bg-white text-indigo-600 text-[11px] font-black px-4 py-2 rounded-xl border border-indigo-50 shadow-sm">
+                                                                {year}
+                                                            </span>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -317,11 +336,21 @@ export default function JobBoard() {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="p-6 sm:p-8 bg-slate-50 border-t border-slate-100 rounded-b-3xl">
+                        <div className="p-6 sm:p-8 bg-slate-50 border-t border-slate-100 rounded-b-3xl flex flex-col sm:flex-row gap-4">
+                            {selectedJob.applyLink && !appliedJobs.includes(selectedJob.id) && (
+                                <a
+                                    href={selectedJob.applyLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 hover:bg-indigo-50 transition-all active:scale-[0.98]"
+                                >
+                                    Direct External Apply ↗
+                                </a>
+                            )}
                             <button
                                 onClick={() => handleApply(selectedJob)}
                                 disabled={applying || appliedJobs.includes(selectedJob.id)}
-                                className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
+                                className={`flex-[2] py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
                                     appliedJobs.includes(selectedJob.id)
                                     ? 'bg-emerald-500 text-white cursor-not-allowed shadow-none'
                                     : 'bg-gradient-to-r from-indigo-600 to-indigo-800 text-white hover:shadow-xl hover:shadow-indigo-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed'
@@ -329,7 +358,7 @@ export default function JobBoard() {
                             >
                                 {appliedJobs.includes(selectedJob.id) 
                                     ? 'Applied \u2713' 
-                                    : (applying ? 'Submitting Application...' : `Apply For This ${selectedJob.type}`)}
+                                    : (applying ? 'Submitting Application...' : `Register Internally For ${selectedJob.type}`)}
                                 {!appliedJobs.includes(selectedJob.id) && (
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                         <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../config/firebaseConfig';
+import { formatDate } from '../../utils/dateUtils';
 
 export default function AdminManagement() {
     const [admins, setAdmins] = useState([]);
@@ -77,7 +78,7 @@ export default function AdminManagement() {
                                         <td className="py-3 font-medium text-slate-800">{admin.name}</td>
                                         <td className="py-3 text-slate-600">{admin.email}</td>
                                         <td className="py-3 text-slate-500 text-sm">
-                                            {admin.createdAt?.seconds ? new Date(admin.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                                            {formatDate(admin.createdAt)}
                                         </td>
                                         <td className="py-3 text-right">
                                             <button

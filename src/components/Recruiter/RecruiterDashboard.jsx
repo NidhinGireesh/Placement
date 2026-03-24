@@ -28,19 +28,21 @@ export default function RecruiterDashboard() {
     website: '',
     description: '',
   });
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   // Job postings state
   const [jobForm, setJobForm] = useState({
-    title: '',
+    role: '',
     description: '',
-    eligibility: '',
-    targetBranches: [],
-    targetYears: [],
     minCgpa: '',
     maxBacklogs: '',
+    targetBranches: [],
+    targetYears: [],
     deadline: '',
-    packageDetails: '',
+    package: '',
     location: '',
+    selectionProcess: '',
+    applyLink: '',
   });
   const [jobPostings, setJobPostings] = useState([]);
   const [editingJobId, setEditingJobId] = useState(null);
@@ -51,11 +53,11 @@ export default function RecruiterDashboard() {
   const [filterClass, setFilterClass] = useState('All Classes');
   const [selectedApplication, setSelectedApplication] = useState(null);
 
-  const uniqueJobs = ['All Jobs', ...new Set(jobPostings.map(job => job.title))];
+  const uniqueJobs = ['All Jobs', ...new Set(jobPostings.map(job => job.role || job.title))];
   const uniqueClasses = ['All Classes', ...new Set(applications.map(app => app.course).filter(Boolean))];
 
   const jobMap = jobPostings.reduce((acc, job) => {
-    acc[job.id] = job.title;
+    acc[job.id] = job.role || job.title;
     return acc;
   }, {});
 
@@ -85,6 +87,8 @@ export default function RecruiterDashboard() {
         website: result.website || '',
         description: result.description || '',
       });
+      if (result.company) setIsEditingProfile(false);
+      else setIsEditingProfile(true);
     }
   };
 
@@ -126,7 +130,7 @@ export default function RecruiterDashboard() {
 
   // Sync Selection List with Shortlisted Candidates
   useEffect(() => {
-    const shortlisted = applications.filter(app => app.status === 'Shortlisted');
+    const shortlisted = applications.filter(app => app.status?.toLowerCase() === 'shortlisted');
     setSelectionList(shortlisted.map(app => ({
       id: app.id,
       name: app.name,
@@ -135,14 +139,18 @@ export default function RecruiterDashboard() {
     })));
   }, [applications]);
 
-  // Derived metrics for dashboard stats
-  const activeJobsCount = jobPostings.length;
-  const totalApplicationsCount = applications.length;
-  const shortlistedCount = applications.filter(
-    (app) => app.status === 'Shortlisted'
+  // Derived metrics for dashboard stats (Only counting applications for existing jobs)
+  const activeJobsCount = jobPostings.filter(job => !job.status || job.status.toLowerCase() === 'active').length;
+  
+  // Ensure we only count applications for jobs that currently exist to avoid phantom counts
+  const validApplications = applications.filter(app => jobMap[app.jobId]);
+  
+  const totalApplicationsCount = validApplications.length;
+  const shortlistedCount = validApplications.filter(
+    (app) => app.status?.toLowerCase() === 'shortlisted'
   ).length;
-  const interviewScheduledCount = applications.filter(
-    (app) => app.status === 'Interview Scheduled'
+  const interviewScheduledCount = validApplications.filter(
+    (app) => app.status?.toLowerCase() === 'interview scheduled'
   ).length;
 
   const handleLogout = async () => {
@@ -190,7 +198,8 @@ export default function RecruiterDashboard() {
         description: companyProfile.description,
     });
     if (result.success) {
-        showNotification('success', 'Company profile saved/updated successfully.');
+        showNotification('success', 'Company profile saved successfully.');
+        setIsEditingProfile(false);
     } else {
         showNotification('error', result.error);
     }
@@ -209,13 +218,14 @@ export default function RecruiterDashboard() {
 
   const handleJobSubmit = async (e) => {
     e.preventDefault();
-    if (!jobForm.title || !jobForm.description) {
-      showNotification('error', 'Please enter a job title and description.');
+    if (!jobForm.role || !jobForm.description) {
+      showNotification('error', 'Please enter a job role and description.');
       return;
     }
 
     const jobData = {
       ...jobForm,
+      title: jobForm.role, // Maintain title for backward compatibility
       postedBy: user.uid,
       company: companyProfile.name || user.name || 'Company',
     };
@@ -240,34 +250,35 @@ export default function RecruiterDashboard() {
     }
 
     setJobForm({
-      title: '',
+      role: '',
       description: '',
-      eligibility: '',
-      targetBranches: [],
-      targetYears: [],
       minCgpa: '',
       maxBacklogs: '',
+      targetBranches: [],
+      targetYears: [],
       deadline: '',
-      packageDetails: '',
+      package: '',
       location: '',
+      selectionProcess: '',
+      applyLink: '',
     });
   };
 
   const handleEditJob = (job) => {
     setJobForm({
-      title: job.title || '',
+      role: job.role || job.title || '',
       description: job.description || '',
-      eligibility: job.eligibility || '',
+      minCgpa: job.minCgpa || job.cgpa || '',
+      maxBacklogs: job.maxBacklogs || '0',
       targetBranches: job.targetBranches || [],
       targetYears: job.targetYears || [],
-      minCgpa: job.minCgpa || '',
-      maxBacklogs: job.maxBacklogs || '',
       deadline: job.deadline || '',
-      packageDetails: job.packageDetails || '',
+      package: job.package || job.packageDetails || '',
       location: job.location || '',
+      selectionProcess: job.selectionProcess || '',
+      applyLink: job.applyLink || '',
     });
     setEditingJobId(job.id);
-    // Optionally switch to form view or scroll to form
   };
 
   const handleDeleteJob = async (id) => {
@@ -390,7 +401,7 @@ export default function RecruiterDashboard() {
       <aside
         className={`
           fixed md:static inset-y-0 left-0 z-40 
-          ${isSidebarOpen ? 'w-64' : 'w-20'} 
+          w-64 ${isSidebarOpen ? 'md:w-64' : 'md:w-20'} 
           bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col shadow-sm
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
@@ -585,69 +596,123 @@ export default function RecruiterDashboard() {
                   </button>
                 </div>
 
-                {/* Profile Form */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-                    <h3 className="text-lg font-bold text-slate-800">Company Profile</h3>
-                    <p className="text-sm text-slate-500">Update your company details and description</p>
+                  <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-800">Company Profile</h3>
+                        <p className="text-sm text-slate-500">
+                          {isEditingProfile ? 'Update your company details' : 'Your company information'}
+                        </p>
+                      </div>
+                    {!isEditingProfile && (
+                      <button 
+                        onClick={() => setIsEditingProfile(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 shadow-sm transition-all active:scale-95"
+                      >
+                        ✏️ Edit Profile
+                      </button>
+                    )}
                   </div>
                   <div className="p-6">
-                    <form onSubmit={handleProfileSubmit} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Company Name</label>
-                          <input
-                            type="text"
-                            name="name"
-                            value={companyProfile.name}
-                            onChange={handleProfileChange}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
-                            placeholder="Enter company name"
-                          />
+                    {isEditingProfile ? (
+                      <form onSubmit={handleProfileSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Company Name</label>
+                            <input
+                              type="text"
+                              name="name"
+                              value={companyProfile.name}
+                              onChange={handleProfileChange}
+                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                              placeholder="Enter company name"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Location</label>
+                            <input
+                              type="text"
+                              name="location"
+                              value={companyProfile.location}
+                              onChange={handleProfileChange}
+                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                              placeholder="City, Country"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Website URL</label>
+                            <input
+                              type="url"
+                              name="website"
+                              value={companyProfile.website}
+                              onChange={handleProfileChange}
+                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                              placeholder="https://example.com"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Company Description</label>
+                            <textarea
+                              name="description"
+                              value={companyProfile.description}
+                              onChange={handleProfileChange}
+                              rows={4}
+                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-medium text-slate-700 resize-none translate-y-0"
+                              placeholder="Describe your company culture, values, and vision..."
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-3 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingProfile(false)}
+                            className="px-6 py-3 text-sm font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-all"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95"
+                          >
+                            Save Changes
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div className="space-y-6">
+                          <div>
+                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">Corporation</p>
+                            <p className="text-2xl font-black text-slate-800 tracking-tight">{companyProfile.name || 'Not Set'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Headquarters</p>
+                            <p className="text-lg font-bold text-slate-600">{companyProfile.location || 'Not Specified'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Official Site</p>
+                            <a 
+                              href={companyProfile.website} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-lg font-bold text-indigo-600 hover:underline inline-flex items-center gap-2"
+                            >
+                              {companyProfile.website ? (
+                                <>🌐 {new URL(companyProfile.website).hostname}</>
+                              ) : 'None'}
+                            </a>
+                          </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
-                          <input
-                            type="text"
-                            name="location"
-                            value={companyProfile.location}
-                            onChange={handleProfileChange}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
-                            placeholder="City, Country"
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Website</label>
-                          <input
-                            type="url"
-                            name="website"
-                            value={companyProfile.website}
-                            onChange={handleProfileChange}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
-                            placeholder="https://example.com"
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Company Description</label>
-                          <textarea
-                            name="description"
-                            value={companyProfile.description}
-                            onChange={handleProfileChange}
-                            rows={4}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
-                            placeholder="Describe your company culture, values, and vision..."
-                          />
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">About the Company</p>
+                          <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
+                             <p className="text-slate-600 leading-relaxed font-medium">
+                               {companyProfile.description || 'No description provided yet. Click edit to add details about your company.'}
+                             </p>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex justify-end">
-                        <button
-                          type="submit"
-                          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium shadow-md transition-colors"
-                        >
-                          Save Profile
-                        </button>
-                      </div>
-                    </form>
+                    )}
                   </div>
                 </div>
               </div>
@@ -655,216 +720,301 @@ export default function RecruiterDashboard() {
 
             {/* JOB POSTING SECTION */}
             {activeTab === 'jobPosting' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Create Job Form */}
-                <div className="lg:col-span-1">
-                  <div className="bg-white rounded-xl shadow-md border border-slate-200 sticky top-6">
-                    <div className="px-6 py-4 border-b border-slate-100 bg-purple-50">
-                      <h3 className="text-lg font-bold text-purple-800">
-                        {editingJobId ? 'Edit Job Posting' : 'Create New Job'}
-                      </h3>
+              <div className="grid grid-cols-1 gap-10">
+                {/* Header with New Posting Toggle */}
+                <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Active Opportunities</h3>
+                    <p className="text-sm text-slate-500 font-medium">Create and manage your campus recruitment drives.</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                        setEditingJobId(null);
+                        setJobForm({
+                            role: '',
+                            description: '',
+                            minCgpa: '',
+                            maxBacklogs: '',
+                            targetBranches: [],
+                            targetYears: [],
+                            deadline: '',
+                            package: '',
+                            location: '',
+                            selectionProcess: '',
+                            applyLink: '',
+                        });
+                    }}
+                    className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2"
+                  >
+                    <span>+</span> New Posting
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 items-start">
+                  {/* Job Posting Form */}
+                  <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden sticky top-8">
+                    <div className="p-8 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white relative">
+                      <h4 className="text-2xl font-black tracking-tight">{editingJobId ? 'Edit Posting' : 'Create New Posting'}</h4>
+                      <p className="text-indigo-100 text-xs font-medium opacity-80 mt-1">Provide exhaustive details to reach the best candidates.</p>
+                      <div className="absolute right-6 top-6 text-5xl opacity-10">📝</div>
                     </div>
-                    <div className="p-6">
-                      <form onSubmit={handleJobSubmit} className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Job Title</label>
-                          <input
-                            type="text"
-                            name="title"
-                            value={jobForm.title}
-                            onChange={handleJobFormChange}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                            placeholder="e.g. Senior Developer"
-                          />
+                    
+                    <form onSubmit={handleJobSubmit} className="p-8 space-y-8">
+                      {/* Section: Job Basics */}
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-2 mb-2">
+                           <span className="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-[10px]">01</span>
+                           <h5 className="text-xs font-black text-slate-900 uppercase tracking-widest">Job Basics</h5>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                          <textarea
-                            name="description"
-                            value={jobForm.description}
-                            onChange={handleJobFormChange}
-                            rows={4}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                            placeholder="Job details..."
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-1.5">
+                             <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Role / Position</label>
+                            <input
+                              type="text"
+                              name="role"
+                              required
+                              value={jobForm.role}
+                              onChange={handleJobFormChange}
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-50 focus:bg-white outline-none transition-all font-bold text-slate-700 text-sm"
+                              placeholder="e.g. Frontend Developer"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Location</label>
+                            <input
+                              type="text"
+                              name="location"
+                              required
+                              value={jobForm.location}
+                              onChange={handleJobFormChange}
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-50 focus:bg-white outline-none transition-all font-bold text-slate-700 text-sm"
+                              placeholder="e.g. Bangalore, Remote"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Eligibility Descriptions</label>
-                          <textarea
-                            name="eligibility"
-                            value={jobForm.eligibility}
-                            onChange={handleJobFormChange}
-                            rows={2}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                            placeholder="General Requirements..."
-                          />
+                      </div>
+
+                      {/* Section: Eligibility & Package */}
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-2 mb-2">
+                           <span className="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-[10px]">02</span>
+                           <h5 className="text-xs font-black text-slate-900 uppercase tracking-widest">Eligibility</h5>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Target Departments</label>
-                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                            {['All', 'CSE', 'ECE', 'EEE', 'ME', 'RAI', 'IT'].map(branch => (
-                              <label key={branch} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
-                                <input
-                                  type="checkbox"
-                                  checked={jobForm.targetBranches.includes(branch)}
-                                  onChange={(e) => {
-                                    setJobForm(prev => {
-                                      const current = prev.targetBranches || [];
-                                      if (branch === 'All') {
-                                        return { ...prev, targetBranches: current.includes('All') ? [] : ['All'] };
-                                      }
-                                      const newBranches = current.includes(branch)
-                                        ? current.filter(b => b !== branch)
-                                        : [...current.filter(b => b !== 'All'), branch];
-                                      return { ...prev, targetBranches: newBranches };
-                                    });
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-1.5">
+                             <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Package</label>
+                            <input
+                              type="text"
+                              name="package"
+                              required
+                              value={jobForm.package}
+                              onChange={handleJobFormChange}
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-50 focus:bg-white outline-none transition-all font-bold text-slate-700 text-sm"
+                              placeholder="e.g. 8 LPA"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Min CGPA</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              name="minCgpa"
+                              required
+                              value={jobForm.minCgpa}
+                              onChange={handleJobFormChange}
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-50 focus:bg-white outline-none transition-all font-bold text-slate-700 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Max Backlogs</label>
+                            <input
+                              type="number"
+                              name="maxBacklogs"
+                              required
+                              value={jobForm.maxBacklogs}
+                              onChange={handleJobFormChange}
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-50 focus:bg-white outline-none transition-all font-bold text-slate-700 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section: Targets */}
+                      <div className="grid grid-cols-2 gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                        <div className="space-y-2">
+                           <label className="text-xs font-black text-indigo-900 uppercase tracking-widest px-1">Branches</label>
+                           <div className="flex flex-wrap gap-1.5">
+                              {['CSE', 'ECE', 'MECH', 'EEE', 'IT', 'RAI'].map(b => (
+                                <button
+                                  key={b}
+                                  type="button"
+                                  onClick={() => {
+                                     const current = jobForm.targetBranches || [];
+                                     const next = current.includes(b) ? current.filter(x => x !== b) : [...current, b];
+                                     setJobForm(prev => ({ ...prev, targetBranches: next }));
                                   }}
-                                  className="w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500"
-                                />
-                                <span className="text-sm font-medium text-slate-700">
-                                  {branch === 'All' ? 'All Branches' : branch}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
+                                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black tracking-tight transition-all border ${jobForm.targetBranches?.includes(b)
+                                    ? 'bg-indigo-600 text-white border-transparent'
+                                    : 'bg-white text-slate-400 border-slate-100 hover:border-indigo-100'
+                                  }`}
+                                >
+                                  {b}
+                                </button>
+                              ))}
+                           </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Target Passout Years</label>
-                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                            {['All', '2024', '2025', '2026', '2027', '2028'].map(year => (
-                              <label key={year} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
-                                <input
-                                  type="checkbox"
-                                  checked={(jobForm.targetYears || []).includes(year)}
-                                  onChange={(e) => {
-                                    setJobForm(prev => {
-                                      const current = prev.targetYears || [];
-                                      if (year === 'All') {
-                                        return { ...prev, targetYears: current.includes('All') ? [] : ['All'] };
-                                      }
-                                      const newYears = current.includes(year)
-                                        ? current.filter(y => y !== year)
-                                        : [...current.filter(y => y !== 'All'), year];
-                                      return { ...prev, targetYears: newYears };
-                                    });
+                        <div className="space-y-2">
+                           <label className="text-xs font-black text-indigo-900 uppercase tracking-widest px-1">Batches</label>
+                           <div className="flex flex-wrap gap-1.5">
+                              {['2024', '2025', '2026', '2027', '2028', '2029'].map(y => (
+                                <button
+                                  key={y}
+                                  type="button"
+                                  onClick={() => {
+                                     const current = jobForm.targetYears || [];
+                                     const next = current.includes(y) ? current.filter(x => x !== y) : [...current, y];
+                                     setJobForm(prev => ({ ...prev, targetYears: next }));
                                   }}
-                                  className="w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500"
-                                />
-                                <span className="text-sm font-medium text-slate-700">
-                                  {year === 'All' ? 'All Batches' : year}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
+                                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black tracking-tight transition-all border ${jobForm.targetYears?.includes(y)
+                                    ? 'bg-indigo-600 text-white border-transparent'
+                                    : 'bg-white text-slate-400 border-slate-100 hover:border-indigo-100'
+                                  }`}
+                                >
+                                  {y}
+                                </button>
+                              ))}
+                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1">Min CGPA</label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                name="minCgpa"
-                                value={jobForm.minCgpa}
-                                onChange={handleJobFormChange}
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                                placeholder="e.g. 7.5"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1">Max Backlogs</label>
-                              <input
-                                type="number"
-                                name="maxBacklogs"
-                                value={jobForm.maxBacklogs}
-                                onChange={handleJobFormChange}
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                                placeholder="e.g. 0"
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Application Deadline</label>
+                      </div>
+
+                      {/* Section: Description & Process */}
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                                <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Deadline</label>
                             <input
                               type="date"
                               name="deadline"
+                              required
                               value={jobForm.deadline}
                               onChange={handleJobFormChange}
-                              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-50 focus:bg-white outline-none transition-all font-bold text-slate-700 text-sm"
                             />
                           </div>
-                          <button
-                            type="submit"
-                            className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium shadow transition-colors"
-                          >
-                            {editingJobId ? 'Update Job' : 'Post Job'}
-                          </button>
-                          {editingJobId && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingJobId(null);
-                                setJobForm({ title: '', description: '', eligibility: '' });
-                              }}
-                              className="w-full bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 py-2 rounded-lg font-medium transition-colors"
-                            >
-                              Cancel Edit
-                            </button>
-                          )}
-                      </form>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Job List */}
-                <div className="lg:col-span-2 space-y-4">
-                  <h3 className="text-xl font-bold text-slate-800 mb-4">Current Openings</h3>
-                  {jobPostings.length === 0 ? (
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
-                      <span className="text-4xl block mb-2">📭</span>
-                      <p className="text-slate-500">No active job postings. Create one to get started.</p>
-                    </div>
-                  ) : (
-                    jobPostings.map((job) => (
-                      <div key={job.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h4 className="text-lg font-bold text-slate-800">{job.title}</h4>
-                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full mt-1 inline-block">Active</span>
-                          </div>
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleEditJob(job)}
-                              className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-full transition-colors"
-                              title="Edit"
-                            >
-                              ✏️
-                            </button>
-                            <button
-                              onClick={() => handleDeleteJob(job.id)}
-                              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                              title="Delete"
-                            >
-                              🗑️
-                            </button>
+                          <div className="space-y-1.5">
+                                <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1">Direct link (opt)</label>
+                            <input
+                              type="url"
+                              name="applyLink"
+                              value={jobForm.applyLink}
+                              onChange={handleJobFormChange}
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-50 focus:bg-white outline-none transition-all font-bold text-slate-700 text-sm"
+                              placeholder="https://..."
+                            />
                           </div>
                         </div>
-                        <div className="space-y-3">
-                          <div>
-                            <p className="text-xs font-semibold text-slate-500 uppercase">Description</p>
-                            <p className="text-sm text-slate-700 mt-1">{job.description}</p>
-                          </div>
-                          {job.eligibility && (
-                            <div>
-                              <p className="text-xs font-semibold text-slate-500 uppercase">Eligibility</p>
-                              <p className="text-sm text-slate-700 mt-1 bg-slate-50 p-2 rounded border border-slate-100 inline-block font-mono text-xs">
-                                {job.eligibility}
-                              </p>
-                            </div>
-                          )}
+                        <div className="space-y-1.5">
+                                <label className="text-xs font-black text-slate-900 uppercase tracking-widest px-1 uppercase mb-2 block">Detailed Description & Requirements</label>
+                          <textarea
+                            name="description"
+                            required
+                            rows="4"
+                            value={jobForm.description}
+                            onChange={handleJobFormChange}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-50 focus:bg-white outline-none transition-all font-medium text-slate-700 text-[13px] resize-none"
+                            placeholder="Role responsibilities..."
+                          ></textarea>
+                        </div>
+                        <div className="space-y-1.5">
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest px-1 uppercase mb-2 block">Selection Process (Venue, Date, Time)</label>
+                          <textarea
+                            name="selectionProcess"
+                            rows="3"
+                            value={jobForm.selectionProcess}
+                            onChange={handleJobFormChange}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-50 focus:bg-white outline-none transition-all font-medium text-slate-700 text-[13px] resize-none"
+                            placeholder="Venue, Interview timings..."
+                          ></textarea>
                         </div>
                       </div>
-                    ))
-                  )}
+
+                      <button
+                        type="submit"
+                        className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] mt-4"
+                      >
+                        {editingJobId ? 'Update Opportunity' : 'Launch Broadcast'}
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Job List */}
+                  <div className="space-y-6">
+                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                       Active Drives <span className="w-5 h-5 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-[10px]">{jobPostings.length}</span>
+                    </h3>
+                    {jobPostings.length === 0 ? (
+                      <div className="bg-white rounded-[2rem] border-2 border-dashed border-slate-100 p-12 text-center">
+                        <span className="text-5xl block mb-4">📢</span>
+                        <p className="text-slate-400 font-bold">Launch your first drive today!</p>
+                      </div>
+                    ) : (
+                      jobPostings.map((job) => (
+                        <div key={job.id} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8 hover:shadow-xl hover:-translate-y-1 transition-all group overflow-hidden relative">
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-bl-[4rem] -translate-y-8 translate-x-8 -z-0 group-hover:scale-110 transition-transform"></div>
+                          
+                          <div className="relative z-10">
+                            <div className="flex justify-between items-start mb-6">
+                              <div>
+                                <h4 className="text-2xl font-black text-slate-800 tracking-tight group-hover:text-indigo-600 transition-colors">
+                                  {job.role || job.title}
+                                </h4>
+                                <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest mt-1">
+                                  <span className="text-indigo-600">{job.company}</span>
+                                  <span className="text-slate-200">•</span>
+                                  <span>{job.location}</span>
+                                  <span className="text-slate-200">•</span>
+                                  <span className="text-slate-300 font-medium">Applied: {applications.filter(a => a.jobId === job.id).length}</span>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleEditJob(job)}
+                                  className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-slate-100"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteJob(job.id)}
+                                  className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-all border border-slate-100"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                              <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Package</p>
+                                <p className="text-sm font-black text-slate-700">{job.package || job.packageDetails}</p>
+                              </div>
+                              <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Eligibility</p>
+                                <p className="text-sm font-black text-indigo-600">{job.minCgpa || job.cgpa} CGPA</p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              {job.targetBranches?.map(b => (
+                                <span key={b} className="bg-white px-3 py-1.5 rounded-lg border border-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-tight">
+                                  {b}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -1162,8 +1312,8 @@ export default function RecruiterDashboard() {
                 )}
                 <div>
                   <h2 className="text-2xl font-bold text-slate-800">{selectedApplication.name}</h2>
-                  <p className="text-slate-500 font-medium">{selectedApplication.email}</p>
-                  <p className="text-slate-500">{selectedApplication.phone || 'No phone provided'}</p>
+                  <p className="text-slate-900 font-medium">{selectedApplication.email}</p>
+                  <p className="text-slate-900">{selectedApplication.phone || 'No phone provided'}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-semibold">
                       {selectedApplication.course}
@@ -1185,7 +1335,7 @@ export default function RecruiterDashboard() {
               {/* Bio */}
               {selectedApplication.bio && (
                   <div>
-                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">About</h4>
+                    <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2">About</h4>
                     <p className="text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
                       {selectedApplication.bio}
                     </p>
@@ -1195,7 +1345,7 @@ export default function RecruiterDashboard() {
               {/* Skills */}
               {selectedApplication.skills && selectedApplication.skills.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Skills</h4>
+                  <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2">Skills</h4>
                   <div className="flex flex-wrap gap-2">
                     {selectedApplication.skills.map((skill, index) => (
                       <span key={index} className="bg-slate-100 text-slate-700 px-3 py-1 rounded-md text-sm border border-slate-200">
@@ -1208,7 +1358,7 @@ export default function RecruiterDashboard() {
 
               {/* Resume */}
               <div>
-                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Resume</h4>
+                <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2">Resume</h4>
                 {selectedApplication.resumeUrl ? (
                   <a 
                     href={selectedApplication.resumeUrl} 
@@ -1222,7 +1372,7 @@ export default function RecruiterDashboard() {
                     View & Download Resume
                   </a>
                 ) : (
-                  <p className="text-slate-500 italic">No resume provided.</p>
+                  <p className="text-slate-900 italic">No resume provided.</p>
                 )}
               </div>
             </div>
