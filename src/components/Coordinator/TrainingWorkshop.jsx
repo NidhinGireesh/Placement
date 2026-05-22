@@ -67,8 +67,12 @@ const TrainingWorkshop = () => {
 
         // Fetch existing attendance if any
         const result = await getAttendance(session.id, coordinatorClass);
-        if (result.success) {
+        if (result.success && result.presentStudentIds && result.presentStudentIds.length > 0) {
             setPresentIds(result.presentStudentIds);
+        } else {
+            // Default: Mark all students as present
+            // This way coordinator only needs to uncheck absentees
+            setPresentIds(classStudents.map(s => s.id));
         }
     };
 

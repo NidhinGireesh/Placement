@@ -128,10 +128,13 @@ export default function RecruiterDashboard() {
     return () => clearTimeout(timeout);
   }, [notification]);
 
-  // Sync Selection List with Shortlisted Candidates
+  // Sync Selection List with Shortlisted & Scheduled Candidates
   useEffect(() => {
-    const shortlisted = applications.filter(app => app.status?.toLowerCase() === 'shortlisted');
-    setSelectionList(shortlisted.map(app => ({
+    const targets = applications.filter(app =>
+      app.status?.toLowerCase() === 'shortlisted' ||
+      app.status?.toLowerCase() === 'interview scheduled'
+    );
+    setSelectionList(targets.map(app => ({
       id: app.id,
       name: app.name,
       selected: false,
@@ -354,6 +357,43 @@ export default function RecruiterDashboard() {
         cand.id === id ? { ...cand, selected: !cand.selected } : cand
       )
     );
+  };
+
+  const handleDeleteInterview = async (candId) => {
+    if (!window.confirm('Are you sure you want to delete this interview schedule? The candidate will be moved back to Shortlisted.')) return;
+    
+    const result = await updateApplicationStatus(candId, 'Shortlisted', {
+      interviewDate: null,
+      interviewTime: null,
+      interviewVenue: null,
+      interviewMessage: null
+    });
+    
+    if (result.success) {
+      showNotification('success', 'Interview schedule deleted successfully.');
+      fetchApplications();
+    } else {
+      showNotification('error', result.error);
+    }
+  };
+
+  const handleEditInterview = (cand) => {
+    setInterviewSchedule({
+      candidate: cand.id,
+      date: cand.interviewDate || '',
+      time: cand.interviewTime || '',
+      venue: cand.interviewVenue || '',
+      message: cand.interviewMessage || ''
+    });
+    
+    // Auto-select ONLY this candidate for easier editing
+    setSelectionList(prev => prev.map(c => ({
+      ...c,
+      selected: c.id === cand.id
+    })));
+    
+    // Scroll to form (optional)
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const publishSelectedList = () => {
@@ -1209,6 +1249,76 @@ export default function RecruiterDashboard() {
                         Schedule Interview
                       </button>
                     </form>
+                  </div>
+                </div>
+
+                {/* Scheduled Interviews List */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
+                  <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                    <h3 className="text-lg font-black text-slate-800 tracking-tight">Scheduled Interviews</h3>
+                    <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                      {applications.filter(app => app.status?.toLowerCase() === 'interview scheduled').length} total
+                    </span>
+                  </div>
+                  <div className="p-6 overflow-y-auto max-h-[600px] flex-1">
+                    {applications.filter(app => app.status?.toLowerCase() === 'interview scheduled').length === 0 ? (
+                      <div className="text-center py-12 text-slate-400 font-bold bg-slate-50 rounded-2xl border-2 border-dashed border-slate-100">
+                        <span className="text-4xl block mb-2">🤝</span>
+                        No interviews scheduled yet.
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {applications.filter(app => app.status?.toLowerCase() === 'interview scheduled').map((cand) => (
+                          <div key={cand.id} className="p-5 border border-slate-100 rounded-2xl hover:border-indigo-100 hover:bg-slate-50 transition-all group">
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="flex items-center gap-4">
+                                {cand.photoUrl ? (
+                                  <img src={cand.photoUrl} alt={cand.name} className="w-10 h-10 rounded-full object-cover border border-slate-200" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black">
+                                    {cand.name?.charAt(0)}
+                                  </div>
+                                )}
+                                <div>
+                                  <h4 className="font-black text-slate-800 text-base">{cand.name}</h4>
+                                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none mt-1">{jobMap[cand.jobId]}</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleEditInterview(cand)}
+                                  className="p-1 px-2.5 rounded-lg bg-white border border-slate-100 text-indigo-600 hover:bg-indigo-50 transition-colors text-xs font-black uppercase tracking-widest flex items-center gap-1.5"
+                                  title="Edit Schedule"
+                                >
+                                  ✏️ Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteInterview(cand.id)}
+                                  className="p-1 px-2.5 rounded-lg bg-white border border-slate-100 text-red-600 hover:bg-red-50 transition-colors text-xs font-black uppercase tracking-widest flex items-center gap-1.5"
+                                  title="Delete Schedule"
+                                >
+                                  🗑️ Delete
+                                </button>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="bg-white p-2 rounded-xl border border-slate-100">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Date</p>
+                                <p className="text-[11px] font-bold text-slate-700">{cand.interviewDate}</p>
+                              </div>
+                              <div className="bg-white p-2 rounded-xl border border-slate-100">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Time</p>
+                                <p className="text-[11px] font-bold text-slate-700">{cand.interviewTime}</p>
+                              </div>
+                              <div className="bg-white p-2 rounded-xl border border-slate-100">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Venue</p>
+                                <p className="text-[11px] font-bold text-slate-700 truncate">{cand.interviewVenue}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 

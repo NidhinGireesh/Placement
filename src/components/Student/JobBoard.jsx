@@ -182,22 +182,35 @@ export default function JobBoard() {
                             >
                                 View Details
                             </button>
-                            <button
-                                onClick={() => handleApply(job)}
-                                disabled={applying || appliedJobs.includes(job.id)}
-                                className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
-                                    appliedJobs.includes(job.id) 
-                                    ? 'bg-emerald-500 text-white cursor-not-allowed shadow-none'
-                                    : 'bg-slate-900 text-white hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-200 group-hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed'
-                                }`}
-                            >
-                                {appliedJobs.includes(job.id) ? 'Applied \u2713' : 'Apply'}
-                                {!appliedJobs.includes(job.id) && (
+                            {job.applyLink ? (
+                                <a
+                                    href={job.applyLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 bg-slate-900 text-white hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-200 group-hover:bg-indigo-600"
+                                >
+                                    View Job
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                     </svg>
-                                )}
-                            </button>
+                                </a>
+                            ) : (
+                                <button
+                                    onClick={() => handleApply(job)}
+                                    disabled={applying || appliedJobs.includes(job.id)}
+                                    className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${appliedJobs.includes(job.id)
+                                            ? 'bg-emerald-500 text-white cursor-not-allowed shadow-none'
+                                            : 'bg-slate-900 text-white hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-200 group-hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed'
+                                        }`}
+                                >
+                                    {appliedJobs.includes(job.id) ? 'Applied \u2713' : 'Apply'}
+                                    {!appliedJobs.includes(job.id) && (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        </svg>
+                                    )}
+                                </button>
+                            )}
                         </div>
                     </div>
                 ))}
@@ -337,34 +350,34 @@ export default function JobBoard() {
 
                         {/* Modal Footer */}
                         <div className="p-6 sm:p-8 bg-slate-50 border-t border-slate-100 rounded-b-3xl flex flex-col sm:flex-row gap-4">
-                            {selectedJob.applyLink && !appliedJobs.includes(selectedJob.id) && (
+                            {selectedJob.applyLink ? (
                                 <a
                                     href={selectedJob.applyLink}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 hover:bg-indigo-50 transition-all active:scale-[0.98]"
+                                    className="flex-1 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white hover:shadow-xl hover:shadow-indigo-200 hover:-translate-y-0.5 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
                                 >
-                                    Direct External Apply ↗
+                                    View Job ↗
                                 </a>
+                            ) : (
+                                <button
+                                    onClick={() => handleApply(selectedJob)}
+                                    disabled={applying || appliedJobs.includes(selectedJob.id)}
+                                    className={`flex-[2] py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${appliedJobs.includes(selectedJob.id)
+                                            ? 'bg-emerald-500 text-white cursor-not-allowed shadow-none'
+                                            : 'bg-gradient-to-r from-indigo-600 to-indigo-800 text-white hover:shadow-xl hover:shadow-indigo-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed'
+                                        }`}
+                                >
+                                    {appliedJobs.includes(selectedJob.id)
+                                        ? 'Applied \u2713'
+                                        : (applying ? 'Submitting Application...' : `Register Internally For ${selectedJob.type}`)}
+                                    {!appliedJobs.includes(selectedJob.id) && (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
+                                    )}
+                                </button>
                             )}
-                            <button
-                                onClick={() => handleApply(selectedJob)}
-                                disabled={applying || appliedJobs.includes(selectedJob.id)}
-                                className={`flex-[2] py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
-                                    appliedJobs.includes(selectedJob.id)
-                                    ? 'bg-emerald-500 text-white cursor-not-allowed shadow-none'
-                                    : 'bg-gradient-to-r from-indigo-600 to-indigo-800 text-white hover:shadow-xl hover:shadow-indigo-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed'
-                                }`}
-                            >
-                                {appliedJobs.includes(selectedJob.id) 
-                                    ? 'Applied \u2713' 
-                                    : (applying ? 'Submitting Application...' : `Register Internally For ${selectedJob.type}`)}
-                                {!appliedJobs.includes(selectedJob.id) && (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
-                                )}
-                            </button>
                         </div>
                     </div>
                 </div>
