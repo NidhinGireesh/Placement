@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { logoutUser } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
+import { db } from '../../config/firebaseConfig';
+import { collection, onSnapshot, query, limit } from 'firebase/firestore';
 import DashboardOverview from './DashboardOverview';
 import StudentManagement from './StudentManagement';
 import RecruiterManagement from './RecruiterManagement';
@@ -24,6 +26,17 @@ export default function AdminDashboard() {
   const [studentFilter, setStudentFilter] = useState('all');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hasNotifications, setHasNotifications] = useState(false);
+
+  useEffect(() => {
+    const q = query(collection(db, 'announcements'), limit(1));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setHasNotifications(!snapshot.empty);
+    }, (error) => {
+      console.error("Error checking announcements:", error);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const getHeaderContent = () => {
     switch (activeTab) {
@@ -72,12 +85,10 @@ export default function AdminDashboard() {
     { id: 'students', label: 'Students', icon: '👨‍🎓' },
     { id: 'recruiters', label: 'Recruiters', icon: '🏢' },
     { id: 'coordinators', label: 'Student Coordinators', icon: '👔' },
+    { id: 'admins', label: 'Faculty Admins', icon: '🛡️' },
     { id: 'jobs', label: 'Jobs & Placements', icon: '💼' },
     { id: 'courses', label: 'Training & Courses', icon: '📚' },
-
-
     { id: 'reports', label: 'Reports', icon: '📑' },
-    { id: 'admins', label: 'Faculty Admins', icon: '🛡️' }, // Admin Management Tab
     { id: 'uploaddrives', label: 'Upload Drives', icon: '🚀' },
   ];
 
@@ -194,7 +205,7 @@ export default function AdminDashboard() {
             <header className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4 border-b border-gray-200/50 pb-6 relative">
               <div className="flex items-center gap-4">
                 {activeTab !== 'overview' && (
-                  <button 
+                  <button
                     onClick={() => setActiveTab('overview')}
                     className="p-2.5 rounded-xl bg-white border border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm group shrink-0"
                     title="Back to Dashboard"
@@ -210,13 +221,15 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="flex items-center space-x-4">
-                <button 
-                  onClick={() => setActiveTab('announcements')} 
+                <button
+                  onClick={() => setActiveTab('announcements')}
                   className="relative p-2 text-gray-400 hover:text-blue-600 transition-colors"
                   title="View Announcements"
                 >
                   <span className="text-2xl">🔔</span>
-                  <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white"></span>
+                  {hasNotifications && (
+                    <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white"></span>
+                  )}
                 </button>
 
                 <button
@@ -234,14 +247,14 @@ export default function AdminDashboard() {
               </div>
             </header>
             {activeTab === 'overview' && (
-              <DashboardOverview 
-                setActiveTab={setActiveTab} 
-                setStudentFilter={setStudentFilter} 
+              <DashboardOverview
+                setActiveTab={setActiveTab}
+                setStudentFilter={setStudentFilter}
               />
             )}
             {activeTab === 'students' && (
-              <StudentManagement 
-                initialFilter={studentFilter} 
+              <StudentManagement
+                initialFilter={studentFilter}
                 setInitialFilter={setStudentFilter}
               />
             )}

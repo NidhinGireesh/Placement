@@ -49,6 +49,13 @@ const PostAnnouncement = ({ onSuccess, editData }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (formData.deadline) {
+            const today = new Date().toISOString().split('T')[0];
+            if (formData.deadline < today) {
+                alert('Deadline cannot be in the past.');
+                return;
+            }
+        }
         try {
             if (isEditing) {
                 const docRef = doc(db, 'announcements', editId);
@@ -174,6 +181,7 @@ const PostAnnouncement = ({ onSuccess, editData }) => {
                             <input
                                 type="date"
                                 name="deadline"
+                                min={new Date().toISOString().split('T')[0]}
                                 value={formData.deadline}
                                 onChange={handleChange}
                                 className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"

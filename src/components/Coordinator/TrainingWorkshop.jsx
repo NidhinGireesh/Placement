@@ -35,8 +35,8 @@ const TrainingWorkshop = () => {
 
     const fetchData = async () => {
         setLoading(true);
-        // 1. Fetch Offline Courses targeted at this batch
-        const coursesResult = await getOfflineCourses(user.passoutYear);
+        // 1. Fetch Offline Courses targeted at this batch and department
+        const coursesResult = await getOfflineCourses(user.passoutYear, userBranch);
         if (coursesResult.success) {
             setSessions(coursesResult.data);
         }

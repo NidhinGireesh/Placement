@@ -54,6 +54,10 @@ export default function CourseDashboard() {
                 if (course.assignedTo !== 'All') {
                     students = students.filter(s => s.passoutYear === course.assignedTo);
                 }
+                // Filter by department if not 'All'
+                if (course.assignedDepartment && course.assignedDepartment !== 'All') {
+                    students = students.filter(s => s.branch === course.assignedDepartment || s.department === course.assignedDepartment);
+                }
 
                 // Map to table data
                 const mappedList = students.map(s => ({
@@ -117,17 +121,25 @@ export default function CourseDashboard() {
         const title = e.target.title.value;
         const description = e.target.description.value;
         const batch = e.target.batch.value;
+        const department = e.target.department.value;
 
         let newCourse = {
             title,
             description,
             assignedTo: batch,
+            assignedDepartment: department,
             type: courseType
         };
 
         if (courseType === 'online') {
             newCourse.link = e.target.link.value;
         } else {
+            const today = new Date().toISOString().split('T')[0];
+            if (e.target.date.value < today) {
+                alert('Course date cannot be in the past.');
+                setIsSubmitting(false);
+                return;
+            }
             newCourse.date = e.target.date.value;
             newCourse.time = e.target.time.value;
             newCourse.venue = e.target.venue.value;
@@ -205,7 +217,7 @@ export default function CourseDashboard() {
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
-                                            <input name="date" type="date" required className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                            <input name="date" type="date" min={new Date().toISOString().split('T')[0]} required className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">Time</label>
@@ -222,11 +234,25 @@ export default function CourseDashboard() {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Assign To Batch</label>
                                 <select name="batch" className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
-                                    <option value="2025">Batch 2025</option>
                                     <option value="2026">Batch 2026</option>
                                     <option value="2027">Batch 2027</option>
                                     <option value="2028">Batch 2028</option>
+                                    <option value="2029">Batch 2029</option>
                                     <option value="All">All Batches</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Assign To Department</label>
+                                <select name="department" className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                                    <option value="All">All Departments</option>
+                                    <option value="CSE">CSE</option>
+                                    <option value="ECE">ECE</option>
+                                    <option value="MECH">MECH</option>
+                                    <option value="IT">IT</option>
+                                    <option value="EEE">EEE</option>
+                                    <option value="RAI">RAI</option>
+                                    <option value="Other">Other</option>
                                 </select>
                             </div>
                             <button
@@ -274,6 +300,9 @@ export default function CourseDashboard() {
                                             <div className="flex flex-wrap items-center gap-3">
                                                 <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-semibold">
                                                     👥 Batch: {course.assignedTo}
+                                                </span>
+                                                <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-semibold">
+                                                    🏢 Dept: {course.assignedDepartment || 'All'}
                                                 </span>
 
                                                 {course.type === 'offline' ? (

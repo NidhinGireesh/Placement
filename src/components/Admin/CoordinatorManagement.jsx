@@ -94,12 +94,6 @@ export default function CoordinatorManagement() {
                     <h1 className="text-3xl font-bold text-slate-800">Student Coordinator Management</h1>
                     <p className="text-slate-500">Approve or reject coordinator requests.</p>
                 </div>
-                <button
-                    onClick={() => setShowAddForm(!showAddForm)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-md transition-colors flex items-center gap-2"
-                >
-                    <span>{showAddForm ? 'Cancel' : '+ Add Student Coordinator'}</span>
-                </button>
             </div>
 
             {/* Add Coordinator Form */}

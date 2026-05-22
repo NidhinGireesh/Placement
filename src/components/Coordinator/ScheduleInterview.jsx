@@ -25,6 +25,11 @@ const ScheduleInterview = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        const today = new Date().toISOString().split('T')[0];
+        if (formData.date && formData.date < today) {
+            alert('Interview date cannot be in the past.');
+            return;
+        }
         const newInterview = {
             id: interviews.length + 1,
             company: formData.company,
@@ -106,6 +111,7 @@ const ScheduleInterview = () => {
                             <input
                                 type="date"
                                 name="date"
+                                min={new Date().toISOString().split('T')[0]}
                                 value={formData.date}
                                 onChange={handleChange}
                                 required

@@ -215,12 +215,6 @@ export default function StudentManagement({ initialFilter = 'all', setInitialFil
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    <button
-                        onClick={() => setShowAddForm(!showAddForm)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition-colors whitespace-nowrap"
-                    >
-                        {showAddForm ? 'Cancel' : '+ Add Student'}
-                    </button>
                 </div>
             </div>
 

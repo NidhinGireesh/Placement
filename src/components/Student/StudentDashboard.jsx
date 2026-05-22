@@ -4,6 +4,8 @@ import { logoutUser } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
 import { getStudentProfile } from '../../services/studentService';
 import { getAllJobs } from '../../services/jobService';
+import { db } from '../../config/firebaseConfig';
+import { collection, onSnapshot, query, limit } from 'firebase/firestore';
 
 // Components
 import StudentProfile from './StudentProfile';
@@ -24,6 +26,17 @@ export default function StudentDashboard() {
   const [latestInterview, setLatestInterview] = useState(null);
   const [recentJobs, setRecentJobs] = useState([]);
   const [loadingRecent, setLoadingRecent] = useState(true);
+  const [hasNotifications, setHasNotifications] = useState(false);
+
+  useEffect(() => {
+    const q = query(collection(db, 'announcements'), limit(1));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setHasNotifications(!snapshot.empty);
+    }, (error) => {
+      console.error("Error checking announcements:", error);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (user?.uid) {
@@ -408,7 +421,9 @@ export default function StudentDashboard() {
                 title="View Announcements"
               >
                 <span className="text-2xl">🔔</span>
-                <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white"></span>
+                {hasNotifications && (
+                  <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white"></span>
+                )}
               </button>
 
               <button

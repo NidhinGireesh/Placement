@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logoutUser, getCurrentUser, updateUserProfile } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
+import { db } from '../../config/firebaseConfig';
+import { collection, onSnapshot, query, limit } from 'firebase/firestore';
 import {
   postOpportunity,
   getJobsByRecruiter,
@@ -20,6 +22,17 @@ export default function RecruiterDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hasNotifications, setHasNotifications] = useState(false);
+
+  useEffect(() => {
+    const q = query(collection(db, 'announcements'), limit(1));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setHasNotifications(!snapshot.empty);
+    }, (error) => {
+      console.error("Error checking announcements:", error);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Company profile state
   const [companyProfile, setCompanyProfile] = useState({
@@ -226,6 +239,12 @@ export default function RecruiterDashboard() {
       return;
     }
 
+    const today = new Date().toISOString().split('T')[0];
+    if (jobForm.deadline && jobForm.deadline < today) {
+      showNotification('error', 'Application deadline cannot be in the past.');
+      return;
+    }
+
     const jobData = {
       ...jobForm,
       title: jobForm.role, // Maintain title for backward compatibility
@@ -323,6 +342,12 @@ export default function RecruiterDashboard() {
 
     if (!interviewSchedule.date || !interviewSchedule.time || !interviewSchedule.venue) {
       setNotification({ type: 'error', message: 'Date, Time, and Venue are required.' });
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    if (interviewSchedule.date && interviewSchedule.date < today) {
+      showNotification('error', 'Interview date cannot be in the past.');
       return;
     }
 
@@ -554,7 +579,9 @@ export default function RecruiterDashboard() {
                   title="View Announcements"
                 >
                   <span className="text-2xl">🔔</span>
-                  <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white"></span>
+                  {hasNotifications && (
+                    <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white"></span>
+                  )}
                 </button>
 
                 <button
@@ -767,27 +794,6 @@ export default function RecruiterDashboard() {
                     <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Active Opportunities</h3>
                     <p className="text-sm text-slate-500 font-medium">Create and manage your campus recruitment drives.</p>
                   </div>
-                  <button
-                    onClick={() => {
-                        setEditingJobId(null);
-                        setJobForm({
-                            role: '',
-                            description: '',
-                            minCgpa: '',
-                            maxBacklogs: '',
-                            targetBranches: [],
-                            targetYears: [],
-                            deadline: '',
-                            package: '',
-                            location: '',
-                            selectionProcess: '',
-                            applyLink: '',
-                        });
-                    }}
-                    className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2"
-                  >
-                    <span>+</span> New Posting
-                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 items-start">
@@ -936,6 +942,7 @@ export default function RecruiterDashboard() {
                               type="date"
                               name="deadline"
                               required
+                              min={new Date().toISOString().split('T')[0]}
                               value={jobForm.deadline}
                               onChange={handleJobFormChange}
                               className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-50 focus:bg-white outline-none transition-all font-bold text-slate-700 text-sm"
@@ -1203,6 +1210,7 @@ export default function RecruiterDashboard() {
                           <input
                             type="date"
                             name="date"
+                            min={new Date().toISOString().split('T')[0]}
                             value={interviewSchedule.date}
                             onChange={handleInterviewChange}
                             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"

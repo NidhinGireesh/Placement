@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logoutUser } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
+import { db } from '../../config/firebaseConfig';
+import { collection, onSnapshot, query, limit } from 'firebase/firestore';
 import CoordinatorSidebar from './CoordinatorSidebar';
 
 // Coordinator Modules
@@ -26,6 +28,17 @@ export default function CoordinatorDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [studentFilter, setStudentFilter] = useState('all');
+  const [hasNotifications, setHasNotifications] = useState(false);
+
+  useEffect(() => {
+    const q = query(collection(db, 'announcements'), limit(1));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setHasNotifications(!snapshot.empty);
+    }, (error) => {
+      console.error("Error checking announcements:", error);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const getHeaderContent = () => {
     switch(activeTab) {
@@ -146,7 +159,9 @@ export default function CoordinatorDashboard() {
                 title="View Announcements"
               >
                 <span className="text-2xl">🔔</span>
-                <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white"></span>
+                {hasNotifications && (
+                  <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white"></span>
+                )}
               </button>
 
               <button

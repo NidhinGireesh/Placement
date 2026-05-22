@@ -80,7 +80,7 @@ export default function UpcomingDrives() {
                                         <span className="font-bold text-gray-800">Role:</span> {drive.role || drive.title}
                                     </p>
                                     <p className="text-gray-600 text-sm flex items-center gap-2">
-                                        <span className="font-bold text-gray-800">Deadline:</span> {drive.deadline}
+                                        <span className="font-bold text-gray-800">Date:</span> {drive.deadline}
                                     </p>
                                     <p className="text-gray-600 text-sm flex items-center gap-2">
                                         <span className="font-bold text-gray-800">Eligible:</span> {drive.eligibility}

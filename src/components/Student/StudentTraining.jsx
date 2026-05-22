@@ -18,7 +18,7 @@ export default function StudentTraining() {
 
     const fetchCourses = async () => {
         setLoading(true);
-        const result = await getTargetedCourses(user.passoutYear);
+        const result = await getTargetedCourses(user.passoutYear, user.branch || user.department);
         if (result.success) {
             setCourses(result.data);
         } else {

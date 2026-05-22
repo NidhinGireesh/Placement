@@ -142,6 +142,12 @@ export const loginUser = async (email, password) => {
     if (userDoc.exists()) {
       const userData = userDoc.data();
 
+      // Check if user is blocked
+      if (userData.blocked === true) {
+        await signOut(auth);
+        return { success: false, error: 'Your account has been blocked by the admin. Please contact support.' };
+      }
+
       // 1. Check Admin Approval status for restricted roles (Coordinator, Recruiter, Student, Admin)
       const isApproved = userData.approved === true || userData.status === 'approved' || userData.status === 'Verified';
 
@@ -262,8 +268,8 @@ export const setupAuthListener = (callback) => {
         const isEmailVerified = firebaseUser.emailVerified;
         const skipEmailCheck = userData.role === 'admin';
 
-        if ((!isEmailVerified && !skipEmailCheck) || ((userData.role === 'coordinator' || userData.role === 'recruiter' || userData.role === 'student' || userData.role === 'admin') && !isApproved)) {
-          // If unapproved/unverified session exists, sign them out
+        if (userData.blocked === true || (!isEmailVerified && !skipEmailCheck) || ((userData.role === 'coordinator' || userData.role === 'recruiter' || userData.role === 'student' || userData.role === 'admin') && !isApproved)) {
+          // If unapproved/unverified/blocked session exists, sign them out
           await signOut(auth);
           callback(null);
           return;

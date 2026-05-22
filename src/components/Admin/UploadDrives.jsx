@@ -26,6 +26,13 @@ export default function UploadDrives() {
         e.preventDefault();
         setLoading(true);
         try {
+            const today = new Date().toISOString().split('T')[0];
+            if (deadline < today) {
+                alert('Date cannot be in the past.');
+                setLoading(false);
+                return;
+            }
+
             const cleanDomain = domain.replace(/^https?:\/\//, '');
             let logoUrl = '';
             if (cleanDomain.toLowerCase().includes('infosys')) {
@@ -87,8 +94,8 @@ export default function UploadDrives() {
                         <input type="text" placeholder="e.g. System Engineer" className="border border-gray-300 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-blue-500 outline-none" value={role} onChange={e => setRole(e.target.value)} required />
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">Deadline</label>
-                        <input type="text" placeholder="e.g. Feb 18, 2026" className="border border-gray-300 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-blue-500 outline-none" value={deadline} onChange={e => setDeadline(e.target.value)} required />
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Date</label>
+                        <input type="date" min={new Date().toISOString().split('T')[0]} className="border border-gray-300 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-blue-500 outline-none" value={deadline} onChange={e => setDeadline(e.target.value)} required />
                     </div>
                     <div className="md:col-span-2">
                         <label className="block text-sm font-semibold text-gray-700 mb-1">Eligibility</label>
@@ -99,7 +106,7 @@ export default function UploadDrives() {
                     {loading ? 'Uploading...' : 'Upload Drive & Make Public'}
                 </button>
             </form>
-
+ 
             <h3 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Currently Uploaded Drives</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {drives.length === 0 && <p className="text-gray-500 py-4 col-span-full">No drives uploaded yet.</p>}
@@ -115,7 +122,7 @@ export default function UploadDrives() {
                             </div>
                         </div>
                         <div className="text-sm text-gray-600 space-y-1 mb-4">
-                            <p><span className="font-semibold text-gray-700">Deadline:</span> {drive.deadline}</p>
+                            <p><span className="font-semibold text-gray-700">Date:</span> {drive.deadline}</p>
                             <p><span className="font-semibold text-gray-700">Eligibility:</span> {drive.eligibility}</p>
                         </div>
                         <button onClick={() => handleDelete(drive.id)} className="w-full bg-red-50 text-red-600 px-3 py-2 text-sm font-semibold rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors border border-red-100 shadow-sm">

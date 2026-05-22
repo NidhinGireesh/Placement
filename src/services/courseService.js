@@ -41,7 +41,7 @@ export const getAllCourses = async () => {
     }
 };
 
-export const getTargetedCourses = async (batch) => {
+export const getTargetedCourses = async (batch, department) => {
     try {
         // Fetch all and filter client side to avoid complex index requirements
         // given the expected volume of scaling
@@ -53,9 +53,13 @@ export const getTargetedCourses = async (batch) => {
             ...doc.data()
         }));
 
-        const targeted = allCourses.filter(course =>
-            course.assignedTo === 'All' || course.assignedTo === batch
-        );
+        const targeted = allCourses.filter(course => {
+            const matchesBatch = course.assignedTo === 'All' || course.assignedTo === batch;
+            const matchesDept = !course.assignedDepartment || 
+                               course.assignedDepartment === 'All' || 
+                               (department && course.assignedDepartment === department);
+            return matchesBatch && matchesDept;
+        });
 
         return { success: true, data: targeted };
     } catch (error) {
@@ -64,7 +68,7 @@ export const getTargetedCourses = async (batch) => {
     }
 };
 
-export const getOfflineCourses = async (batch) => {
+export const getOfflineCourses = async (batch, department) => {
     try {
         // Fetch all and filter client side to avoid complex composite index requirements
         const q = query(
@@ -78,10 +82,14 @@ export const getOfflineCourses = async (batch) => {
             ...doc.data()
         }));
 
-        const targeted = allCourses.filter(course =>
-            course.type === 'offline' && 
-            (course.assignedTo === 'All' || course.assignedTo === batch)
-        );
+        const targeted = allCourses.filter(course => {
+            const isOffline = course.type === 'offline';
+            const matchesBatch = course.assignedTo === 'All' || course.assignedTo === batch;
+            const matchesDept = !course.assignedDepartment || 
+                               course.assignedDepartment === 'All' || 
+                               (department && course.assignedDepartment === department);
+            return isOffline && matchesBatch && matchesDept;
+        });
 
         return { success: true, data: targeted };
     } catch (error) {

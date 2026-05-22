@@ -41,8 +41,7 @@ export default function RecruiterManagement() {
             company: newRecruiter.company,
             email: newRecruiter.email,
             role: 'recruiter',
-            createdAt: new Date(),
-            company: newRecruiter.company // Ensure this key is consistent with authService
+            createdAt: new Date()
         });
 
         if (result.success) {
@@ -73,12 +72,6 @@ export default function RecruiterManagement() {
                     <h1 className="text-3xl font-bold text-slate-800">Recruiter Management</h1>
                     <p className="text-slate-500">Manage company recruiters and their access.</p>
                 </div>
-                <button
-                    onClick={() => setShowAddForm(!showAddForm)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow-md transition-colors flex items-center gap-2"
-                >
-                    <span>{showAddForm ? 'Cancel' : '+ Add Recruiter'}</span>
-                </button>
             </div>
 
             {/* Add Recruiter Form */}

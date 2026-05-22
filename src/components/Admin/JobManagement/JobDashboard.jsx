@@ -255,6 +255,11 @@ function CreateJobForm({ onSuccess, defaultType = 'Job', initialData = null, onC
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const today = new Date().toISOString().split('T')[0];
+        if (formData.deadline && formData.deadline < today) {
+            alert('Deadline cannot be in the past.');
+            return;
+        }
         setLoading(true);
         let result;
         if (initialData && initialData.id) {
@@ -440,6 +445,7 @@ function CreateJobForm({ onSuccess, defaultType = 'Job', initialData = null, onC
                                 <input
                                     type="date"
                                     required
+                                    min={new Date().toISOString().split('T')[0]}
                                     className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
                                     value={formData.deadline}
                                     onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
